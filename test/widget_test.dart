@@ -6,6 +6,7 @@ import 'package:wizdesk/features/tasks/data/datasources/task_local_datasource.da
 import 'package:wizdesk/features/tasks/data/models/focus_session_model.dart';
 import 'package:wizdesk/features/tasks/data/models/task_category_model.dart';
 import 'package:wizdesk/features/tasks/data/models/task_model.dart';
+import 'package:wizdesk/features/navigation/presentation/screens/main_navigation_screen.dart';
 import 'package:wizdesk/features/tasks/domain/entities/task_enums.dart';
 import 'package:wizdesk/main.dart';
 
@@ -34,8 +35,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WizDeskApp), findsOneWidget);
-    expect(find.text('Good Day, Creator 👋'), findsOneWidget);
-    expect(find.text('TODAY\'S PROGRESS'), findsOneWidget);
+    expect(find.byType(MainNavigationScreen), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.text('Focus'), findsOneWidget);
+    expect(find.text('Analytics'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
   });
 }
 
@@ -122,5 +126,11 @@ class MockTestTaskLocalDataSource implements TaskLocalDataSource {
         createdAt: DateTime.now(),
       ),
     );
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    _tasks.clear();
+    _categories.clear();
   }
 }

@@ -16,6 +16,7 @@ abstract class TaskLocalDataSource {
   Future<void> logFocusSession(FocusSessionModel session);
   Future<List<FocusSessionModel>> getFocusSessions();
   Future<void> seedInitialDataIfEmpty();
+  Future<void> clearAllData();
 }
 
 class TaskLocalDataSourceImpl implements TaskLocalDataSource {
@@ -28,6 +29,17 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
     required this.categoriesBox,
     required this.sessionsBox,
   });
+
+  @override
+  Future<void> clearAllData() async {
+    try {
+      await tasksBox.clear();
+      await categoriesBox.clear();
+      await sessionsBox.clear();
+    } catch (e) {
+      throw CacheException('Failed to clear database: $e');
+    }
+  }
 
   @override
   Future<List<TaskModel>> getTasks() async {

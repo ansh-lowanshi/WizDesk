@@ -17,13 +17,16 @@ import 'package:wizdesk/features/tasks/presentation/bloc/task_state.dart';
 class MockTaskRepository implements TaskRepository {
   final List<TaskEntity> _tasks = [];
   final List<TaskCategoryEntity> _categories = [];
+  final List<FocusSessionEntity> _sessions = [];
 
   MockTaskRepository({
     List<TaskEntity>? initialTasks,
     List<TaskCategoryEntity>? initialCategories,
+    List<FocusSessionEntity>? initialSessions,
   }) {
     if (initialTasks != null) _tasks.addAll(initialTasks);
     if (initialCategories != null) _categories.addAll(initialCategories);
+    if (initialSessions != null) _sessions.addAll(initialSessions);
   }
 
   @override
@@ -76,10 +79,12 @@ class MockTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<void> logFocusSession(FocusSessionEntity session) async {}
+  Future<void> logFocusSession(FocusSessionEntity session) async {
+    _sessions.add(session);
+  }
 
   @override
-  Future<List<FocusSessionEntity>> getFocusSessions() async => [];
+  Future<List<FocusSessionEntity>> getFocusSessions() async => List.from(_sessions);
 }
 
 void main() {

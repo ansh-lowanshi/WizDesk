@@ -1,0 +1,280 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/responsive_wrapper.dart';
+import '../../../tasks/presentation/bloc/task_bloc.dart';
+import '../../../tasks/presentation/bloc/task_event.dart';
+import '../../../tasks/presentation/bloc/task_state.dart';
+import '../../domain/models/user_preferences_model.dart';
+import '../bloc/settings_bloc.dart';
+import '../bloc/settings_event.dart';
+import '../bloc/settings_state.dart';
+import '../widgets/about_app_section.dart';
+import '../widgets/data_management_section.dart';
+import '../widgets/font_switcher_section.dart';
+import '../widgets/goals_settings_section.dart';
+import '../widgets/profile_hero_card.dart';
+import '../widgets/timer_settings_section.dart';
+
+/// Full Settings, Profile & Timer Customization Screen
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final bloc = context.read<SettingsBloc>();
+    if (bloc.state is! SettingsLoaded) {
+      bloc.add(const LoadSettingsEvent());
+    }
+  }
+
+  void _openEditProfileDialog(
+      BuildContext context, UserPreferencesModel preferences) {
+    final nameController = TextEditingController(text: preferences.userName);
+    final titleController = TextEditingController(text: preferences.userTitle);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        title: Text('Edit Profile', style: AppTypography.heading3),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Display Name', style: AppTypography.titleSmall),
+            SizedBox(height: 6.h),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                hintText: 'Enter your name',
+                prefixIcon: Icon(Icons.person_outline_rounded,
+                    color: AppColors.accentCyan),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            Text('Title / Role', style: AppTypography.titleSmall),
+            SizedBox(height: 6.h),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Creator, Lead Developer',
+                prefixIcon: Icon(Icons.badge_outlined,
+                    color: AppColors.accentCyan),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancel',
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            onPressed: () {
+              final newName = nameController.text.trim();
+              final newTitle = titleController.text.trim();
+              if (newName.isNotEmpty) {
+                context.read<SettingsBloc>().add(
+                      UpdateUserProfileEvent(
+                        userName: newName,
+                        userTitle:
+                            newTitle.isNotEmpty ? newTitle : 'Focus Architect',
+                      ),
+                    );
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18.r, color: AppColors.textPrimary),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        title: Text('Profile & Settings', style: AppTypography.heading3),
+      ),
+      body: SafeArea(
+        child: ResponsiveWrapper(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: BlocConsumer<SettingsBloc, SettingsState>(
+            listener: (context, state) {
+              if (state is SettingsLoaded) {
+                AppTypography.currentFontFamily = state.preferences.fontFamily;
+                if (state.successMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.successMessage!),
+                      backgroundColor: AppColors.primary,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } else if (state is SettingsError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is SettingsLoading && state is! SettingsLoaded) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.accentCyan,
+                  ),
+                );
+              }
+
+              final preferences = state is SettingsLoaded
+                  ? state.preferences
+                  : const UserPreferencesModel();
+
+              return BlocBuilder<TaskBloc, TaskState>(
+                builder: (context, taskState) {
+                  int totalCompletedTasks = 0;
+                  int totalFocusMinutes = 0;
+
+                  if (taskState is TaskLoaded) {
+                    totalCompletedTasks = taskState.completedTasksCount;
+                    totalFocusMinutes = taskState.allTasks.fold<int>(
+                      0,
+                      (sum, t) => sum + t.spentMinutes,
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Profile Banner
+                        ProfileHeroCard(
+                          preferences: preferences,
+                          totalCompletedTasks: totalCompletedTasks,
+                          totalFocusMinutes: totalFocusMinutes,
+                          onEditProfile: () =>
+                              _openEditProfileDialog(context, preferences),
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 2. Timer Customization Section
+                        TimerSettingsSection(
+                          preferences: preferences,
+                          onChanged: (updated) {
+                            context.read<SettingsBloc>().add(
+                                  UpdateTimerSettingsEvent(
+                                    workDurationMinutes:
+                                        updated.workDurationMinutes,
+                                    shortBreakMinutes:
+                                        updated.shortBreakMinutes,
+                                    longBreakMinutes:
+                                        updated.longBreakMinutes,
+                                    longBreakInterval:
+                                        updated.longBreakInterval,
+                                    autoStartBreaks: updated.autoStartBreaks,
+                                    autoStartPomodoros:
+                                        updated.autoStartPomodoros,
+                                  ),
+                                );
+                          },
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 3. Dynamic Font Switcher Section
+                        FontSwitcherSection(
+                          selectedFont: preferences.fontFamily,
+                          onFontSelected: (font) {
+                            context
+                                .read<SettingsBloc>()
+                                .add(UpdateFontFamilyEvent(font));
+                          },
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 4. Productivity Targets Section
+                        GoalsSettingsSection(
+                          preferences: preferences,
+                          onChanged: (updated) {
+                            context.read<SettingsBloc>().add(
+                                  UpdateGoalsEvent(
+                                    dailyTaskGoal: updated.dailyTaskGoal,
+                                    dailyFocusMinutesGoal:
+                                        updated.dailyFocusMinutesGoal,
+                                  ),
+                                );
+                          },
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 5. Data Management & Danger Zone
+                        DataManagementSection(
+                          onResetSettings: () {
+                            context
+                                .read<SettingsBloc>()
+                                .add(const ResetSettingsEvent());
+                          },
+                          onClearAllData: () {
+                            context
+                                .read<SettingsBloc>()
+                                .add(const ClearAllDataConfirmedEvent());
+                            // Refresh tasks after wipe
+                            context
+                                .read<TaskBloc>()
+                                .add(const LoadTasksEvent());
+                          },
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 6. About App Section
+                        const AboutAppSection(),
+
+                        SizedBox(height: 90.h),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}

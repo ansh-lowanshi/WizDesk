@@ -15,7 +15,7 @@ class TaskCard extends StatefulWidget {
   final TaskEntity task;
   final TaskCategoryEntity? category;
   final VoidCallback onToggle;
-  final VoidCallback? onTap;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onStartFocus;
 
@@ -24,7 +24,7 @@ class TaskCard extends StatefulWidget {
     required this.task,
     this.category,
     required this.onToggle,
-    this.onTap,
+    this.onEdit,
     this.onDelete,
     this.onStartFocus,
   });
@@ -59,9 +59,6 @@ class _TaskCardState extends State<TaskCard> {
           setState(() {
             _isExpanded = !_isExpanded;
           });
-        }
-        if (widget.onTap != null) {
-          widget.onTap!();
         }
       },
       child: Column(
@@ -192,8 +189,8 @@ class _TaskCardState extends State<TaskCard> {
                 onSelected: (value) {
                   if (value == 'delete' && widget.onDelete != null) {
                     widget.onDelete!();
-                  } else if (value == 'edit' && widget.onTap != null) {
-                    widget.onTap!();
+                  } else if (value == 'edit' && widget.onEdit != null) {
+                    widget.onEdit!();
                   }
                 },
                 itemBuilder: (context) => [

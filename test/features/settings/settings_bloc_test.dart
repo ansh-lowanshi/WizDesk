@@ -1,0 +1,172 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wizdesk/features/settings/domain/models/app_font_family.dart';
+import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
+import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
+import 'package:wizdesk/features/settings/domain/usecases/clear_all_data_usecase.dart';
+import 'package:wizdesk/features/settings/domain/usecases/get_settings_usecase.dart';
+import 'package:wizdesk/features/settings/domain/usecases/reset_settings_usecase.dart';
+import 'package:wizdesk/features/settings/domain/usecases/save_settings_usecase.dart';
+import 'package:wizdesk/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:wizdesk/features/settings/presentation/bloc/settings_event.dart';
+import 'package:wizdesk/features/settings/presentation/bloc/settings_state.dart';
+
+class MockSettingsRepository implements SettingsRepository {
+  UserPreferencesModel currentPrefs;
+
+  MockSettingsRepository([UserPreferencesModel? initial])
+      : currentPrefs = initial ?? const UserPreferencesModel();
+
+  @override
+  Future<UserPreferencesModel> getPreferences() async => currentPrefs;
+
+  @override
+  Future<void> savePreferences(UserPreferencesModel preferences) async {
+    currentPrefs = preferences;
+  }
+
+  @override
+  Future<void> resetToDefaults() async {
+    currentPrefs = const UserPreferencesModel();
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    currentPrefs = const UserPreferencesModel();
+  }
+}
+
+void main() {
+  late MockSettingsRepository repository;
+  late GetSettingsUseCase getSettingsUseCase;
+  late SaveSettingsUseCase saveSettingsUseCase;
+  late ResetSettingsUseCase resetSettingsUseCase;
+  late ClearAllDataUseCase clearAllDataUseCase;
+  late SettingsBloc settingsBloc;
+
+  setUp(() {
+    repository = MockSettingsRepository();
+    getSettingsUseCase = GetSettingsUseCase(repository);
+    saveSettingsUseCase = SaveSettingsUseCase(repository);
+    resetSettingsUseCase = ResetSettingsUseCase(repository);
+    clearAllDataUseCase = ClearAllDataUseCase(repository);
+
+    settingsBloc = SettingsBloc(
+      getSettingsUseCase: getSettingsUseCase,
+      saveSettingsUseCase: saveSettingsUseCase,
+      resetSettingsUseCase: resetSettingsUseCase,
+      clearAllDataUseCase: clearAllDataUseCase,
+    );
+  });
+
+  tearDown(() {
+    settingsBloc.close();
+  });
+
+  group('SettingsBloc Tests', () {
+    test('initial state is SettingsInitial', () {
+      expect(settingsBloc.state, isA<SettingsInitial>());
+    });
+
+    test('LoadSettingsEvent loads default preferences correctly', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+
+      await expectLater(
+        settingsBloc.stream,
+        emitsInOrder([
+          isA<SettingsLoading>(),
+          isA<SettingsLoaded>().having(
+            (s) => s.preferences.userName,
+            'userName',
+            'Creator',
+          ),
+        ]),
+      );
+    });
+
+    test('UpdateTimerSettingsEvent updates duration and emits message', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      settingsBloc.add(
+        const UpdateTimerSettingsEvent(
+          workDurationMinutes: 45,
+          shortBreakMinutes: 10,
+          longBreakMinutes: 20,
+          longBreakInterval: 3,
+          autoStartBreaks: true,
+          autoStartPomodoros: false,
+        ),
+      );
+
+      await expectLater(
+        settingsBloc.stream,
+        emits(
+          isA<SettingsLoaded>()
+              .having((s) => s.preferences.workDurationMinutes, 'workDuration', 45)
+              .having((s) => s.preferences.shortBreakMinutes, 'shortBreak', 10)
+              .having((s) => s.preferences.autoStartBreaks, 'autoStartBreaks', true),
+        ),
+      );
+    });
+
+    test('UpdateFontFamilyEvent switches font family correctly', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      settingsBloc.add(const UpdateFontFamilyEvent(AppFontFamily.spaceGrotesk));
+
+      await expectLater(
+        settingsBloc.stream,
+        emits(
+          isA<SettingsLoaded>().having(
+            (s) => s.preferences.fontFamily,
+            'fontFamily',
+            AppFontFamily.spaceGrotesk,
+          ),
+        ),
+      );
+    });
+
+    test('UpdateUserProfileEvent updates userName and title', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      settingsBloc.add(
+        const UpdateUserProfileEvent(
+          userName: 'Alex Dev',
+          userTitle: 'Lead Engineer',
+        ),
+      );
+
+      await expectLater(
+        settingsBloc.stream,
+        emits(
+          isA<SettingsLoaded>()
+              .having((s) => s.preferences.userName, 'userName', 'Alex Dev')
+              .having((s) => s.preferences.userTitle, 'userTitle', 'Lead Engineer'),
+        ),
+      );
+    });
+
+    test('ResetSettingsEvent resets all preferences to defaults', () async {
+      repository.currentPrefs = const UserPreferencesModel(
+        userName: 'Custom User',
+        workDurationMinutes: 50,
+      );
+
+      settingsBloc.add(const ResetSettingsEvent());
+
+      await expectLater(
+        settingsBloc.stream,
+        emitsInOrder([
+          isA<SettingsLoading>(),
+          isA<SettingsLoaded>().having(
+            (s) => s.preferences.workDurationMinutes,
+            'workDuration',
+            25,
+          ),
+        ]),
+      );
+    });
+  });
+}

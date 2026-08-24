@@ -11,6 +11,11 @@ import '../../domain/entities/task_entity.dart';
 import '../bloc/task_bloc.dart';
 import '../bloc/task_event.dart';
 import '../bloc/task_state.dart';
+import '../../../../features/analytics/presentation/screens/analytics_screen.dart';
+import '../../../../features/focus/presentation/screens/focus_timer_screen.dart';
+import '../../../../features/settings/presentation/bloc/settings_bloc.dart';
+import '../../../../features/settings/presentation/bloc/settings_state.dart';
+import '../../../../features/settings/presentation/screens/settings_screen.dart';
 import '../widgets/category_filter_carousel.dart';
 import '../widgets/daily_progress_banner.dart';
 import '../widgets/status_filter_tabs.dart';
@@ -21,13 +26,11 @@ import 'add_edit_task_screen.dart';
 
 /// Main Home Dashboard Screen for Wiz Desk
 class HomeDashboardScreen extends StatefulWidget {
-  final VoidCallback? onNavigateToTimer;
   final VoidCallback? onNavigateToAddTask;
   final ValueChanged<TaskEntity>? onStartTaskFocus;
 
   const HomeDashboardScreen({
     super.key,
-    this.onNavigateToTimer,
     this.onNavigateToAddTask,
     this.onStartTaskFocus,
   });
@@ -42,26 +45,57 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Trigger initial load
-    context.read<TaskBloc>().add(const LoadTasksEvent());
+    // Load initial tasks & categories
+    final taskBloc = context.read<TaskBloc>();
+    if (taskBloc.state is! TaskLoaded) {
+      taskBloc.add(const LoadTasksEvent());
+    }
   }
 
   void _openAddTaskScreen() {
     if (widget.onNavigateToAddTask != null) {
       widget.onNavigateToAddTask!();
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const AddEditTaskScreen(),
-        ),
-      );
+      return;
     }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AddEditTaskScreen(),
+      ),
+    );
   }
 
   void _openEditTaskScreen(TaskEntity task) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AddEditTaskScreen(taskToEdit: task),
+      ),
+    );
+  }
+
+  void _openFocusTimerScreen([TaskEntity? task]) {
+    if (task != null && widget.onStartTaskFocus != null) {
+      widget.onStartTaskFocus!(task);
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FocusTimerScreen(initialTask: task),
+      ),
+    );
+  }
+
+  void _openAnalyticsScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AnalyticsScreen(),
+      ),
+    );
+  }
+
+  void _openSettingsScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SettingsScreen(),
       ),
     );
   }
@@ -87,11 +121,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               }
             },
             builder: (context, state) {
-              if (state is TaskLoading) {
+              if (state is TaskInitial || state is TaskLoading) {
                 return const Center(
                   child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.accentCyan),
+                    color: AppColors.accentCyan,
                   ),
                 );
               }
@@ -124,10 +157,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Good Day, Creator 👋',
-                                        style: AppTypography.heading2,
-                                        overflow: TextOverflow.ellipsis,
+                                      BlocBuilder<SettingsBloc, SettingsState>(
+                                        builder: (context, settingsState) {
+                                          final name = settingsState
+                                                  is SettingsLoaded
+                                              ? settingsState
+                                                  .preferences.userName
+                                              : 'Creator';
+                                          return Text(
+                                            'Good Day, $name 👋',
+                                            style: AppTypography.heading2,
+                                            overflow: TextOverflow.ellipsis,
+                                          );
+                                        },
                                       ),
                                       SizedBox(height: 3.h),
                                       Text(
@@ -139,6 +181,24 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                 ),
                                 Row(
                                   children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.insights_rounded,
+                                        color: AppColors.accentCyan,
+                                        size: 22.r,
+                                      ),
+                                      tooltip: 'Productivity Analytics',
+                                      onPressed: _openAnalyticsScreen,
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.timer_outlined,
+                                        color: AppColors.accentCyan,
+                                        size: 22.r,
+                                      ),
+                                      tooltip: 'Focus Timer',
+                                      onPressed: () => _openFocusTimerScreen(),
+                                    ),
                                     IconButton(
                                       icon: Icon(
                                         _isSearchOpen
@@ -161,14 +221,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                       },
                                     ),
                                     SizedBox(width: 4.w),
-                                    GlowContainer(
-                                      isCircle: true,
-                                      padding: EdgeInsets.all(8.r),
-                                      glowColor: AppColors.primary,
-                                      child: Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 20.r,
-                                        color: AppColors.textPrimary,
+                                    InkWell(
+                                      onTap: _openSettingsScreen,
+                                      borderRadius:
+                                          BorderRadius.circular(20.r),
+                                      child: GlowContainer(
+                                        isCircle: true,
+                                        padding: EdgeInsets.all(8.r),
+                                        glowColor: AppColors.primary,
+                                        child: Icon(
+                                          Icons.person_outline_rounded,
+                                          size: 20.r,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -198,6 +263,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                 0,
                                 (sum, t) => sum + t.spentMinutes,
                               ),
+                              onBannerTap: _openAnalyticsScreen,
                             ),
 
                             SizedBox(height: 20.h),
@@ -294,7 +360,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                         .read<TaskBloc>()
                                         .add(ToggleTaskStatusEvent(task.id));
                                   },
-                                  onTap: () {
+                                  onEdit: () {
                                     _openEditTaskScreen(task);
                                   },
                                   onDelete: () {
@@ -303,9 +369,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                         .add(DeleteTaskEvent(task.id));
                                   },
                                   onStartFocus: () {
-                                    if (widget.onStartTaskFocus != null) {
-                                      widget.onStartTaskFocus!(task);
-                                    }
+                                    _openFocusTimerScreen(task);
                                   },
                                 ),
                               );
