@@ -40,7 +40,7 @@ class TaskLoaded extends TaskState {
     this.statusFilter = TaskStatusFilter.all,
     this.categoryFilterId,
     this.priorityFilter,
-    this.dateFilter = TaskDateFilter.all,
+    this.dateFilter = TaskDateFilter.today,
     this.searchQuery = '',
   });
 
@@ -57,6 +57,17 @@ class TaskLoaded extends TaskState {
       allTasks.where((t) => t.status == TaskStatus.inProgress).length;
 
   int get todayTasksCount => allTasks.where((t) => t.isDueToday).length;
+
+  List<TaskEntity> get todayTasks =>
+      allTasks.where((t) => t.isDueToday).toList();
+
+  int get todayCompletedTasksCount {
+    final now = DateTime.now();
+    return todayTasks.where((t) => t.isCompletedOn(now)).length;
+  }
+
+  int get todayFocusMinutes =>
+      todayTasks.fold<int>(0, (sum, t) => sum + t.spentMinutes);
 
   double get completionRatePercentage {
     if (allTasks.isEmpty) return 0.0;

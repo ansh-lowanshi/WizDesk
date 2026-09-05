@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/models/app_font_family.dart';
+import '../../domain/models/app_theme_mode.dart';
 
 abstract class SettingsEvent extends Equatable {
   const SettingsEvent();
@@ -47,6 +48,24 @@ class UpdateFontFamilyEvent extends SettingsEvent {
 
   @override
   List<Object?> get props => [fontFamily];
+}
+
+class UpdateThemeModeEvent extends SettingsEvent {
+  final AppThemeMode themeMode;
+
+  const UpdateThemeModeEvent(this.themeMode);
+
+  @override
+  List<Object?> get props => [themeMode];
+}
+
+class UpdateDayResetHourEvent extends SettingsEvent {
+  final int dayResetHour;
+
+  const UpdateDayResetHourEvent(this.dayResetHour);
+
+  @override
+  List<Object?> get props => [dayResetHour];
 }
 
 class UpdateGoalsEvent extends SettingsEvent {

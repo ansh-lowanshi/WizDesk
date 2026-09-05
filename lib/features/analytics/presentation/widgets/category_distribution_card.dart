@@ -87,7 +87,7 @@ class CategoryDistributionCard extends StatelessWidget {
                           child: Text(
                             item.categoryName,
                             style: AppTypography.titleSmall.copyWith(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

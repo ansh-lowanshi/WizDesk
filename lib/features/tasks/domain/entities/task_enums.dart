@@ -60,3 +60,22 @@ enum TaskFrequency {
     );
   }
 }
+
+/// Progress Tracking Mode for tasks
+enum TaskProgressMode {
+  individual('Individual / Daily', 'Each day tracks progress independently (0-100%)'),
+  cumulative('Cumulative', 'Progress accumulates across all days towards total completion');
+
+  final String label;
+  final String description;
+
+  const TaskProgressMode(this.label, this.description);
+
+  static TaskProgressMode fromString(String value) {
+    return TaskProgressMode.values.firstWhere(
+      (e) => e.name.toLowerCase() == value.toLowerCase() || e.label.toLowerCase() == value.toLowerCase(),
+      orElse: () => TaskProgressMode.individual,
+    );
+  }
+}
+

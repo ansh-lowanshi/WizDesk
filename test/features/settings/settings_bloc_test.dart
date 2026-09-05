@@ -6,6 +6,7 @@ import 'package:wizdesk/features/settings/domain/usecases/clear_all_data_usecase
 import 'package:wizdesk/features/settings/domain/usecases/get_settings_usecase.dart';
 import 'package:wizdesk/features/settings/domain/usecases/reset_settings_usecase.dart';
 import 'package:wizdesk/features/settings/domain/usecases/save_settings_usecase.dart';
+import 'package:wizdesk/features/settings/domain/models/app_theme_mode.dart';
 import 'package:wizdesk/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:wizdesk/features/settings/presentation/bloc/settings_event.dart';
 import 'package:wizdesk/features/settings/presentation/bloc/settings_state.dart';
@@ -148,6 +149,42 @@ void main() {
       );
     });
 
+    test('UpdateThemeModeEvent switches theme correctly', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      settingsBloc.add(const UpdateThemeModeEvent(AppThemeMode.light));
+
+      await expectLater(
+        settingsBloc.stream,
+        emits(
+          isA<SettingsLoaded>().having(
+            (s) => s.preferences.themeMode,
+            'themeMode',
+            AppThemeMode.light,
+          ),
+        ),
+      );
+    });
+
+    test('UpdateDayResetHourEvent updates day reset cutoff hour', () async {
+      settingsBloc.add(const LoadSettingsEvent());
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      settingsBloc.add(const UpdateDayResetHourEvent(2));
+
+      await expectLater(
+        settingsBloc.stream,
+        emits(
+          isA<SettingsLoaded>().having(
+            (s) => s.preferences.dayResetHour,
+            'dayResetHour',
+            2,
+          ),
+        ),
+      );
+    });
+
     test('ResetSettingsEvent resets all preferences to defaults', () async {
       repository.currentPrefs = const UserPreferencesModel(
         userName: 'Custom User',
@@ -167,6 +204,22 @@ void main() {
           ),
         ]),
       );
+    });
+
+    test('UserPreferencesModel serializes and deserializes themeMode and dayResetHour correctly', () {
+      const prefs = UserPreferencesModel(
+        userName: 'Alex',
+        themeMode: AppThemeMode.light,
+        dayResetHour: 2,
+      );
+
+      final map = prefs.toMap();
+      expect(map['themeMode'], 'light');
+      expect(map['dayResetHour'], 2);
+
+      final reconstructed = UserPreferencesModel.fromMap(map);
+      expect(reconstructed.themeMode, AppThemeMode.light);
+      expect(reconstructed.dayResetHour, 2);
     });
   });
 }

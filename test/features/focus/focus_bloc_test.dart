@@ -161,6 +161,123 @@ void main() {
       expect(updatedTask?.spentMinutes, 25);
     });
 
+    test('TimerTickedEvent periodically updates task spentMinutes every 2 minutes',
+        () async {
+      final task = TaskEntity(
+        id: 'task_periodic_1',
+        title: 'Real-time Focus',
+        description: 'Testing periodic 2 min update',
+        categoryId: 'cat_work',
+        priority: TaskPriority.high,
+        status: TaskStatus.inProgress,
+        dueDate: DateTime.now(),
+        frequency: TaskFrequency.once,
+        estimatedMinutes: 25,
+        spentMinutes: 0,
+        isFocusModeEnabled: true,
+        createdAt: DateTime.now(),
+      );
+
+      await repository.addTask(task);
+
+      focusBloc.add(StartFocusSessionEvent(task: task));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>(
+          (state) => state.isRunning && state.totalSeconds == 1500,
+        )),
+      );
+
+      // Simulate 2 minutes (120 seconds) passing -> remaining = 1500 - 120 = 1380
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 1380));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>(
+          (state) =>
+              state.remainingSeconds == 1380 &&
+              state.activeTask?.spentMinutes == 2,
+        )),
+      );
+
+      // Verify task spentMinutes in repository is updated to 2
+      final taskAfter2Min = await repository.getTaskById(task.id);
+      expect(taskAfter2Min?.spentMinutes, 2);
+
+      // Simulate another 2 minutes passing (total 4 min) -> remaining = 1500 - 240 = 1260
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 1260));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>(
+          (state) =>
+              state.remainingSeconds == 1260 &&
+              state.activeTask?.spentMinutes == 4,
+        )),
+      );
+
+      final taskAfter4Min = await repository.getTaskById(task.id);
+      expect(taskAfter4Min?.spentMinutes, 4);
+    });
+
+    test('Pause and Reset flush unsynced minutes to the task', () async {
+      final task = TaskEntity(
+        id: 'task_periodic_2',
+        title: 'Flush Test',
+        description: 'Testing pause flush',
+        categoryId: 'cat_work',
+        priority: TaskPriority.medium,
+        status: TaskStatus.inProgress,
+        dueDate: DateTime.now(),
+        frequency: TaskFrequency.once,
+        estimatedMinutes: 25,
+        spentMinutes: 0,
+        isFocusModeEnabled: true,
+        createdAt: DateTime.now(),
+      );
+
+      await repository.addTask(task);
+      focusBloc.add(StartFocusSessionEvent(task: task));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) => state.isRunning)),
+      );
+
+      // Simulate 3 minutes passing -> remaining = 1500 - 180 = 1320
+      // 2 minutes get synced at 1380
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 1380));
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>(
+          (state) => state.activeTask?.spentMinutes == 2,
+        )),
+      );
+
+      // 1 more minute passes -> remaining = 1320 (not 2 min yet, so no periodic sync)
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 1320));
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>(
+          (state) => state.remainingSeconds == 1320,
+        )),
+      );
+
+      // Now pause -> flushes the remaining 1 minute -> total 3 minutes
+      focusBloc.add(const PauseFocusSessionEvent());
+      await expectLater(
+        focusBloc.stream,
+        emitsThrough(predicate<FocusState>(
+          (state) =>
+              state.isPaused && state.activeTask?.spentMinutes == 3,
+        )),
+      );
+
+      final taskAfterPause = await repository.getTaskById(task.id);
+      expect(taskAfterPause?.spentMinutes, 3);
+    });
+
     test('SkipPhaseEvent alternates between work and break phases', () async {
       focusBloc.emit(
         const FocusState(

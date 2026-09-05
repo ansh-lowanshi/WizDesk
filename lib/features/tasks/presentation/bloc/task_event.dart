@@ -71,11 +71,12 @@ class DeleteTaskEvent extends TaskEvent {
 /// Toggle task completion status
 class ToggleTaskStatusEvent extends TaskEvent {
   final String taskId;
+  final DateTime? date;
 
-  const ToggleTaskStatusEvent(this.taskId);
+  const ToggleTaskStatusEvent(this.taskId, {this.date});
 
   @override
-  List<Object?> get props => [taskId];
+  List<Object?> get props => [taskId, date];
 }
 
 /// Set a specific status directly (e.g. In Progress, Todo, Completed)
@@ -151,3 +152,14 @@ class AddCategoryEvent extends TaskEvent {
   @override
   List<Object?> get props => [category];
 }
+
+/// Delete an existing category
+class DeleteCategoryEvent extends TaskEvent {
+  final String categoryId;
+
+  const DeleteCategoryEvent(this.categoryId);
+
+  @override
+  List<Object?> get props => [categoryId];
+}
+

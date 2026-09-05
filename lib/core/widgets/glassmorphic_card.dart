@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../theme/app_colors.dart';
 
-/// Modern dark semi-translucent glassmorphic card container
+/// Modern semi-translucent card container supporting both dark & light modes
 class GlassmorphicCard extends StatelessWidget {
   final Widget child;
   final double? width;
@@ -31,13 +31,18 @@ class GlassmorphicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBgColor = backgroundColor ??
+        (AppColors.isDarkMode
+            ? AppColors.surface.withAlpha(220)
+            : AppColors.surface);
+
     final cardContent = Container(
       width: width,
       height: height,
       margin: margin,
       padding: padding ?? EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surface.withAlpha(220),
+        color: effectiveBgColor,
         gradient: gradient,
         borderRadius: BorderRadius.circular(borderRadius?.r ?? 18.r),
         border: Border.all(
@@ -46,7 +51,9 @@ class GlassmorphicCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(70),
+            color: AppColors.isDarkMode
+                ? Colors.black.withAlpha(70)
+                : Colors.black.withAlpha(12),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -62,8 +69,8 @@ class GlassmorphicCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(borderRadius?.r ?? 18.r),
-          splashColor: AppColors.primary.withAlpha(40),
-          highlightColor: AppColors.primary.withAlpha(20),
+          splashColor: AppColors.primary.withAlpha(35),
+          highlightColor: AppColors.primary.withAlpha(15),
           child: cardContent,
         ),
       );

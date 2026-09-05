@@ -9,6 +9,7 @@ import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../domain/entities/task_category_entity.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/task_enums.dart';
+import '../../../focus/presentation/screens/focus_timer_screen.dart';
 
 /// Interactive Task Card component with expandable description on demand
 class TaskCard extends StatefulWidget {
@@ -18,6 +19,7 @@ class TaskCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onStartFocus;
+  final DateTime? date;
 
   const TaskCard({
     super.key,
@@ -27,24 +29,168 @@ class TaskCard extends StatefulWidget {
     this.onEdit,
     this.onDelete,
     this.onStartFocus,
+    this.date,
   });
 
   @override
   State<TaskCard> createState() => _TaskCardState();
 }
 
-class _TaskCardState extends State<TaskCard> {
+class _TaskCardState extends State<TaskCard>
+    with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
+  late final AnimationController _swipeController;
+  late final Animation<double> _swipeAnimation;
+  bool _isSwipedOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _swipeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _swipeAnimation = CurvedAnimation(
+      parent: _swipeController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void didUpdateWidget(TaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final isDone = widget.date != null
+        ? widget.task.isCompletedOn(widget.date!)
+        : widget.task.isCompleted;
+    if (isDone && _swipeController.value > 0) {
+      _closeSwipe();
+    }
+  }
+
+  @override
+  void dispose() {
+    _swipeController.dispose();
+    super.dispose();
+  }
+
+  void _openSwipe() {
+    setState(() => _isSwipedOpen = true);
+    _swipeController.forward();
+  }
+
+  void _closeSwipe() {
+    _swipeController.reverse().then((_) {
+      if (mounted) setState(() => _isSwipedOpen = false);
+    });
+  }
+
+  Future<void> _confirmAndDelete(BuildContext context) async {
+    if (widget.onDelete == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+          side: BorderSide(color: AppColors.border, width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.r),
+              decoration: BoxDecoration(
+                color: AppColors.error.withAlpha(40),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+                size: 22.r,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                'Delete Task?',
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.task.title}"? This action cannot be undone.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        actions: [
+          TextButton(
+            key: const ValueKey('cancel_delete_btn'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: AppTypography.buttonMedium.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            key: const ValueKey('confirm_delete_btn'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              'Delete',
+              style: AppTypography.buttonMedium.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      widget.onDelete!();
+    }
+  }
+
+  void _startTimerDirect() {
+    if (widget.onStartFocus != null) {
+      widget.onStartFocus!();
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FocusTimerScreen(initialTask: widget.task),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDone = widget.task.isCompleted;
+    final bool isDone = widget.date != null
+        ? widget.task.isCompletedOn(widget.date!)
+        : widget.task.isCompleted;
     final categoryColor = widget.category != null
         ? Color(widget.category!.colorValue)
         : AppColors.primary;
-    final bool hasDescription = widget.task.description.trim().isNotEmpty;
+    final String effectiveDescription =
+        widget.task.getDescriptionFor(widget.date);
+    final bool hasDescription = effectiveDescription.trim().isNotEmpty;
 
-    return GlassmorphicCard(
+    final cardWidget = GlassmorphicCard(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       borderColor: isDone
           ? AppColors.border.withAlpha(80)
@@ -54,13 +200,6 @@ class _TaskCardState extends State<TaskCard> {
       backgroundColor: isDone
           ? AppColors.surface.withAlpha(120)
           : AppColors.surface,
-      onTap: () {
-        if (hasDescription) {
-          setState(() {
-            _isExpanded = !_isExpanded;
-          });
-        }
-      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -70,11 +209,16 @@ class _TaskCardState extends State<TaskCard> {
             children: [
               // Custom Checkbox
               GestureDetector(
-                onTap: widget.onToggle,
+                onTap: () {
+                  if (_swipeController.value > 0) {
+                    _closeSwipe();
+                  }
+                  widget.onToggle();
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: 24.r,
-                  height: 24.r,
+                  width: 22.r,
+                  height: 22.r,
                   decoration: BoxDecoration(
                     color: isDone
                         ? AppColors.accentCyan
@@ -90,7 +234,7 @@ class _TaskCardState extends State<TaskCard> {
                         ? [
                             BoxShadow(
                               color: AppColors.accentCyan.withAlpha(120),
-                              blurRadius: 10,
+                              blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
                           ]
@@ -99,7 +243,7 @@ class _TaskCardState extends State<TaskCard> {
                   child: isDone
                       ? Icon(
                           Icons.check_rounded,
-                          size: 16.r,
+                          size: 14.r,
                           color: AppColors.background,
                         )
                       : null,
@@ -108,44 +252,31 @@ class _TaskCardState extends State<TaskCard> {
 
               SizedBox(width: 12.w),
 
-              // Title
+              // Title & Category & Sub-details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.task.title,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: isDone ? AppColors.textMuted : Colors.white,
-                        decoration: isDone
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                        decorationColor: AppColors.textMuted,
-                        decorationThickness: 2,
+                      style: AppTypography.heading3.copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        decoration:
+                            isDone ? TextDecoration.lineThrough : null,
+                        color: isDone
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
                       ),
                     ),
-                    // Expandable Description (Hidden by default, shown when user expands)
-                    if (hasDescription && _isExpanded && !isDone) ...[
-                      SizedBox(height: 8.h),
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: _isExpanded ? 1.0 : 0.0,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated.withAlpha(140),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(
-                                color: AppColors.borderLight, width: 0.8),
-                          ),
-                          child: Text(
-                            widget.task.description,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.35,
-                            ),
-                          ),
+
+                    if (hasDescription && _isExpanded) ...[
+                      SizedBox(height: 6.h),
+                      Text(
+                        effectiveDescription,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.35,
                         ),
                       ),
                     ],
@@ -165,6 +296,7 @@ class _TaskCardState extends State<TaskCard> {
                   },
                   child: Padding(
                     padding: EdgeInsets.all(4.r),
+
                     child: Icon(
                       _isExpanded
                           ? Icons.expand_less_rounded
@@ -184,24 +316,59 @@ class _TaskCardState extends State<TaskCard> {
                 color: AppColors.surfaceElevated,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  side: const BorderSide(color: AppColors.border),
+                  side: BorderSide(color: AppColors.border),
                 ),
                 onSelected: (value) {
-                  if (value == 'delete' && widget.onDelete != null) {
-                    widget.onDelete!();
+                  if (value == 'delete') {
+                    _confirmAndDelete(context);
                   } else if (value == 'edit' && widget.onEdit != null) {
                     widget.onEdit!();
+                  } else if (value == 'timer') {
+                    if (widget.onStartFocus != null) {
+                      widget.onStartFocus!();
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => FocusTimerScreen(initialTask: widget.task),
+                        ),
+                      );
+                    }
                   }
                 },
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'timer',
+                    child: Row(
+                      children: [
+                        Icon(Icons.timer_outlined,
+                            size: 18.r, color: AppColors.accentCyan),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Focus Timer',
+                            style: AppTypography.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(
                       children: [
                         Icon(Icons.edit_outlined,
                             size: 18.r, color: AppColors.textPrimary),
-                        SizedBox(width: 10.w),
-                        Text('Edit Task', style: AppTypography.bodyMedium),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Edit Task',
+                            style: AppTypography.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -211,10 +378,17 @@ class _TaskCardState extends State<TaskCard> {
                       children: [
                         Icon(Icons.delete_outline_rounded,
                             size: 18.r, color: AppColors.error),
-                        SizedBox(width: 10.w),
-                        Text('Delete',
-                            style: AppTypography.bodyMedium
-                                .copyWith(color: AppColors.error)),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Delete',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.error,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -379,23 +553,34 @@ class _TaskCardState extends State<TaskCard> {
                         width: 0.8,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.play_circle_filled_rounded,
-                          size: 13.r,
-                          color: AppColors.accentCyan,
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          '${widget.task.spentMinutes}/${widget.task.estimatedMinutes}m',
-                          style: AppTypography.caption.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                    child: Builder(
+                      builder: (context) {
+                        final currentPct = widget.task.getProgressPercentFor(widget.date);
+                        final currentSpent = widget.task.getSpentMinutesFor(widget.date);
+                        final currentRatio = widget.task.getProgressPercentageFor(widget.date);
+                        final displayPct = currentPct > 0
+                            ? currentPct
+                            : (currentRatio * 100).round();
+
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.play_circle_filled_rounded,
+                              size: 13.r,
+                              color: AppColors.accentCyan,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '$displayPct% • $currentSpent/${widget.task.estimatedMinutes}m',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -403,6 +588,159 @@ class _TaskCardState extends State<TaskCard> {
           ),
         ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxSwipeWidth = constraints.maxWidth * 0.40;
+
+        return Stack(
+          children: [
+            // Background Action Card revealed on swipe (only when not completed)
+            if (!isDone)
+              Positioned.fill(
+                child: FadeTransition(
+                  opacity: _swipeAnimation,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 14.w),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.accentCyan.withAlpha(45),
+                          AppColors.primary.withAlpha(20),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18.r),
+                      border: Border.all(
+                        color: AppColors.accentCyan.withAlpha(100),
+                        width: 1.2,
+                      ),
+                    ),
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxSwipeWidth - 8.w),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Action confirmation button directly inside the revealed swipe space
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14.r),
+                                onTap: () {
+                                  _closeSwipe();
+                                  _startTimerDirect();
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 8.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentCyan,
+                                    borderRadius: BorderRadius.circular(14.r),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accentCyan.withAlpha(160),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.play_arrow_rounded,
+                                        color: Colors.black,
+                                        size: 18.r,
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      Text(
+                                        'Start',
+                                        style: AppTypography.buttonSmall.copyWith(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            // Cancel / dismiss button
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: AppColors.textMuted,
+                                size: 18.r,
+                              ),
+                              tooltip: 'Cancel',
+                              onPressed: _closeSwipe,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Foreground Card sliding horizontally up to 40% of card width
+            AnimatedBuilder(
+              animation: _swipeAnimation,
+              builder: (context, child) {
+                final double currentOffset =
+                    _swipeAnimation.value * maxSwipeWidth;
+                return Transform.translate(
+                  offset: Offset(currentOffset, 0),
+                  child: child,
+                );
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (_swipeController.value > 0) {
+                    _closeSwipe();
+                  }
+                },
+                onHorizontalDragUpdate: isDone
+                    ? null
+                    : (details) {
+                        // Only allow dragging to the right (positive delta) or back
+                        final delta = details.primaryDelta ?? 0;
+                        final double change = delta / maxSwipeWidth;
+                        _swipeController.value =
+                            (_swipeController.value + change).clamp(0.0, 1.0);
+                        if (_swipeController.value > 0.05 && !_isSwipedOpen) {
+                          setState(() => _isSwipedOpen = true);
+                        }
+                      },
+                onHorizontalDragEnd: isDone
+                    ? null
+                    : (details) {
+                        final velocity = details.primaryVelocity ?? 0;
+                        // If flung right or dragged more than 35%, snap open to 40%
+                        if (velocity > 300 || _swipeController.value > 0.35) {
+                          _openSwipe();
+                        } else {
+                          _closeSwipe();
+                        }
+                      },
+                child: cardWidget,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -10,10 +10,17 @@ class TaskEntity extends Equatable {
   final TaskPriority priority;
   final TaskStatus status;
   final DateTime? dueDate;
+  final DateTime? endDate;
   final TaskFrequency frequency;
+  final TaskProgressMode progressMode;
   final List<int> customDays;
+  final List<String> completedDates;
+  final Map<String, int> dailyProgress;
+  final Map<String, int> dailySpentMinutes;
+  final Map<String, String> dailyDescriptions;
   final int estimatedMinutes;
   final int spentMinutes;
+  final int progressPercent;
   final bool isFocusModeEnabled;
   final DateTime createdAt;
   final DateTime? completedAt;
@@ -26,32 +33,143 @@ class TaskEntity extends Equatable {
     this.priority = TaskPriority.medium,
     this.status = TaskStatus.todo,
     this.dueDate,
+    this.endDate,
     this.frequency = TaskFrequency.once,
+    this.progressMode = TaskProgressMode.individual,
     this.customDays = const [],
+    this.completedDates = const [],
+    this.dailyProgress = const {},
+    this.dailySpentMinutes = const {},
+    this.dailyDescriptions = const {},
     this.estimatedMinutes = 25,
     this.spentMinutes = 0,
+    this.progressPercent = 0,
     this.isFocusModeEnabled = true,
     required this.createdAt,
     this.completedAt,
   });
 
-  /// Check if the task is completed
+  /// Check if the task is completed overall or today
   bool get isCompleted => status == TaskStatus.completed;
+
+  /// Format date to YYYY-MM-DD key for daily maps
+  static String formatDateKey(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Check if the task is completed on a specific calendar date
+  bool isCompletedOn(DateTime date) {
+    final dateStr = formatDateKey(date);
+    if (completedDates.contains(dateStr)) return true;
+    if (frequency == TaskFrequency.once && status == TaskStatus.completed) {
+      if (dueDate != null) {
+        return date.year == dueDate!.year &&
+            date.month == dueDate!.month &&
+            date.day == dueDate!.day;
+      }
+      return true;
+    }
+    return false;
+  }
 
   /// Check if the task is due today
   bool get isDueToday {
-    if (dueDate == null) return false;
     final now = DateTime.now();
-    return dueDate!.year == now.year &&
-        dueDate!.month == now.month &&
-        dueDate!.day == now.day;
+    final today = DateTime(now.year, now.month, now.day);
+    final startRaw = dueDate ?? createdAt;
+    final startDate = DateTime(startRaw.year, startRaw.month, startRaw.day);
+
+    if (today.isBefore(startDate)) return false;
+    if (endDate != null) {
+      final end = DateTime(endDate!.year, endDate!.month, endDate!.day);
+      if (today.isAfter(end)) return false;
+    }
+
+    switch (frequency) {
+      case TaskFrequency.once:
+        return today.isAtSameMomentAs(startDate);
+      case TaskFrequency.daily:
+        return true;
+      case TaskFrequency.weekly:
+        return today.weekday == startDate.weekday;
+      case TaskFrequency.customDays:
+        if (customDays.isEmpty) return today.isAtSameMomentAs(startDate);
+        return customDays.contains(today.weekday);
+    }
   }
 
-  /// Completion percentage based on focus time spent vs estimated
+  /// Get the effective progress percentage for a specific date (or overall)
+  int getProgressPercentFor([DateTime? date]) {
+    final targetDate = date ?? DateTime.now();
+    if (isCompletedOn(targetDate)) return 100;
+
+    if (progressMode == TaskProgressMode.cumulative || frequency == TaskFrequency.once) {
+      return progressPercent;
+    }
+
+    final key = formatDateKey(targetDate);
+    if (dailyProgress.containsKey(key)) {
+      return dailyProgress[key]!;
+    }
+    if (dailyProgress.isEmpty && progressPercent > 0) {
+      return progressPercent;
+    }
+    return 0;
+  }
+
+  /// Get the spent minutes for a specific date (or overall)
+  int getSpentMinutesFor([DateTime? date]) {
+    final targetDate = date ?? DateTime.now();
+    if (progressMode == TaskProgressMode.cumulative || frequency == TaskFrequency.once) {
+      return spentMinutes;
+    }
+
+    final key = formatDateKey(targetDate);
+    if (dailySpentMinutes.containsKey(key)) {
+      return dailySpentMinutes[key]!;
+    }
+    if (dailySpentMinutes.isEmpty && spentMinutes > 0) {
+      return spentMinutes;
+    }
+    return 0;
+  }
+
+  /// Get the task description for a specific date (custom override if set, else base)
+  String getDescriptionFor([DateTime? date]) {
+    if (date != null) {
+      final key = formatDateKey(date);
+      if (dailyDescriptions.containsKey(key) &&
+          dailyDescriptions[key]!.trim().isNotEmpty) {
+        return dailyDescriptions[key]!;
+      }
+    }
+    return description;
+  }
+
+  /// Overall completion percentage (0.0 to 1.0) based on base progress/spent
   double get progressPercentage {
     if (isCompleted) return 1.0;
+    if (progressPercent > 0) {
+      return (progressPercent / 100.0).clamp(0.0, 1.0);
+    }
     if (estimatedMinutes <= 0) return 0.0;
     final ratio = spentMinutes / estimatedMinutes;
+    return ratio > 1.0 ? 1.0 : ratio;
+  }
+
+  /// Completion percentage ratio for a specific date
+  double getProgressPercentageFor([DateTime? date]) {
+    final targetDate = date ?? DateTime.now();
+    if (isCompletedOn(targetDate)) return 1.0;
+
+    final currentPercent = getProgressPercentFor(targetDate);
+    if (currentPercent > 0) {
+      return (currentPercent / 100.0).clamp(0.0, 1.0);
+    }
+
+    final currentSpent = getSpentMinutesFor(targetDate);
+    if (estimatedMinutes <= 0) return 0.0;
+    final ratio = currentSpent / estimatedMinutes;
     return ratio > 1.0 ? 1.0 : ratio;
   }
 
@@ -63,10 +181,17 @@ class TaskEntity extends Equatable {
     TaskPriority? priority,
     TaskStatus? status,
     DateTime? dueDate,
+    DateTime? endDate,
     TaskFrequency? frequency,
+    TaskProgressMode? progressMode,
     List<int>? customDays,
+    List<String>? completedDates,
+    Map<String, int>? dailyProgress,
+    Map<String, int>? dailySpentMinutes,
+    Map<String, String>? dailyDescriptions,
     int? estimatedMinutes,
     int? spentMinutes,
+    int? progressPercent,
     bool? isFocusModeEnabled,
     DateTime? createdAt,
     DateTime? completedAt,
@@ -79,10 +204,17 @@ class TaskEntity extends Equatable {
       priority: priority ?? this.priority,
       status: status ?? this.status,
       dueDate: dueDate ?? this.dueDate,
+      endDate: endDate ?? this.endDate,
       frequency: frequency ?? this.frequency,
+      progressMode: progressMode ?? this.progressMode,
       customDays: customDays ?? this.customDays,
+      completedDates: completedDates ?? this.completedDates,
+      dailyProgress: dailyProgress ?? this.dailyProgress,
+      dailySpentMinutes: dailySpentMinutes ?? this.dailySpentMinutes,
+      dailyDescriptions: dailyDescriptions ?? this.dailyDescriptions,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       spentMinutes: spentMinutes ?? this.spentMinutes,
+      progressPercent: progressPercent ?? this.progressPercent,
       isFocusModeEnabled: isFocusModeEnabled ?? this.isFocusModeEnabled,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
@@ -98,10 +230,17 @@ class TaskEntity extends Equatable {
         priority,
         status,
         dueDate,
+        endDate,
         frequency,
+        progressMode,
         customDays,
+        completedDates,
+        dailyProgress,
+        dailySpentMinutes,
+        dailyDescriptions,
         estimatedMinutes,
         spentMinutes,
+        progressPercent,
         isFocusModeEnabled,
         createdAt,
         completedAt,

@@ -22,10 +22,57 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<LoadSettingsEvent>(_onLoadSettings);
     on<UpdateTimerSettingsEvent>(_onUpdateTimerSettings);
     on<UpdateFontFamilyEvent>(_onUpdateFontFamily);
+    on<UpdateThemeModeEvent>(_onUpdateThemeMode);
+    on<UpdateDayResetHourEvent>(_onUpdateDayResetHour);
     on<UpdateGoalsEvent>(_onUpdateGoals);
     on<UpdateUserProfileEvent>(_onUpdateUserProfile);
     on<ResetSettingsEvent>(_onResetSettings);
     on<ClearAllDataConfirmedEvent>(_onClearAllData);
+  }
+
+  Future<void> _onUpdateThemeMode(
+    UpdateThemeModeEvent event,
+    Emitter<SettingsState> emit,
+  ) async {
+    final current = state is SettingsLoaded
+        ? (state as SettingsLoaded).preferences
+        : await getSettingsUseCase();
+
+    final updated = current.copyWith(themeMode: event.themeMode);
+
+    try {
+      await saveSettingsUseCase(updated);
+      emit(SettingsLoaded(
+        preferences: updated,
+        successMessage: 'Theme set to ${event.themeMode.label}',
+      ));
+    } catch (e) {
+      emit(SettingsError('Failed to update theme: $e'));
+    }
+  }
+
+  Future<void> _onUpdateDayResetHour(
+    UpdateDayResetHourEvent event,
+    Emitter<SettingsState> emit,
+  ) async {
+    final current = state is SettingsLoaded
+        ? (state as SettingsLoaded).preferences
+        : await getSettingsUseCase();
+
+    final updated = current.copyWith(dayResetHour: event.dayResetHour);
+
+    try {
+      await saveSettingsUseCase(updated);
+      final formattedHour = event.dayResetHour == 0
+          ? '12:00 AM (Midnight)'
+          : '${event.dayResetHour}:00 AM';
+      emit(SettingsLoaded(
+        preferences: updated,
+        successMessage: 'Day reset time set to $formattedHour',
+      ));
+    } catch (e) {
+      emit(SettingsError('Failed to update day reset time: $e'));
+    }
   }
 
   Future<void> _onLoadSettings(

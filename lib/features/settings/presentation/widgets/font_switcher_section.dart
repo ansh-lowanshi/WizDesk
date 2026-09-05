@@ -91,12 +91,14 @@ class FontSwitcherSection extends StatelessWidget {
                       EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primary.withAlpha(35)
+                        ? AppColors.primary.withAlpha(25)
                         : AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(14.r),
                     border: Border.all(
                       color: isSelected
-                          ? AppColors.accentCyan
+                          ? (AppColors.isDarkMode
+                              ? AppColors.accentCyan
+                              : AppColors.primary)
                           : AppColors.border,
                       width: isSelected ? 1.5 : 1,
                     ),
@@ -110,18 +112,25 @@ class FontSwitcherSection extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isSelected
-                              ? AppColors.accentCyan
+                              ? (AppColors.isDarkMode
+                                  ? AppColors.accentCyan
+                                  : AppColors.primary)
                               : Colors.transparent,
                           border: Border.all(
                             color: isSelected
-                                ? AppColors.accentCyan
+                                ? (AppColors.isDarkMode
+                                    ? AppColors.accentCyan
+                                    : AppColors.primary)
                                 : AppColors.textMuted,
                             width: 2,
                           ),
                         ),
                         child: isSelected
                             ? Icon(Icons.check,
-                                size: 12.r, color: AppColors.background)
+                                size: 12.r,
+                                color: AppColors.isDarkMode
+                                    ? AppColors.background
+                                    : Colors.white)
                             : null,
                       ),
 
@@ -138,7 +147,9 @@ class FontSwitcherSection extends StatelessWidget {
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w700,
                                 color: isSelected
-                                    ? Colors.white
+                                    ? (AppColors.isDarkMode
+                                        ? Colors.white
+                                        : AppColors.primary)
                                     : AppColors.textPrimary,
                               ),
                             ),
@@ -148,7 +159,9 @@ class FontSwitcherSection extends StatelessWidget {
                               style: fontStyle.copyWith(
                                 fontSize: 11.sp,
                                 color: isSelected
-                                    ? AppColors.accentCyan
+                                    ? (AppColors.isDarkMode
+                                        ? AppColors.accentCyan
+                                        : AppColors.primary)
                                     : AppColors.textMuted,
                               ),
                             ),
@@ -159,18 +172,21 @@ class FontSwitcherSection extends StatelessWidget {
                       // Sample preview tag
                       Container(
                         padding: EdgeInsets.symmetric(
-                            horizontal: 8.w, vertical: 3.h),
+                            horizontal: 10.w, vertical: 4.h),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(
+                            color: AppColors.border,
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
-                          'Aa Bb 123',
+                          'Aa',
                           style: fontStyle.copyWith(
-                            fontSize: 12.sp,
-                            color: isSelected
-                                ? AppColors.accentCyan
-                                : AppColors.textSecondary,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ),

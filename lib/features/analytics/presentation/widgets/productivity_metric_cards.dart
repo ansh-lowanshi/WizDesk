@@ -120,7 +120,7 @@ class ProductivityMetricCards extends StatelessWidget {
               style: AppTypography.heading2.copyWith(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.textPrimary,
               ),
             ),
             SizedBox(height: 2.h),

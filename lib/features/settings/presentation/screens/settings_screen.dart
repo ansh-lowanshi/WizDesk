@@ -3,16 +3,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/bloc/theme_bloc.dart';
+import '../../../../core/theme/bloc/theme_event.dart';
+import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../tasks/presentation/bloc/task_bloc.dart';
 import '../../../tasks/presentation/bloc/task_event.dart';
 import '../../../tasks/presentation/bloc/task_state.dart';
+import '../../../tasks/presentation/widgets/manage_categories_sheet.dart';
 import '../../domain/models/user_preferences_model.dart';
 import '../bloc/settings_bloc.dart';
 import '../bloc/settings_event.dart';
 import '../bloc/settings_state.dart';
 import '../widgets/about_app_section.dart';
 import '../widgets/data_management_section.dart';
+import '../widgets/day_reset_section.dart';
 import '../widgets/font_switcher_section.dart';
 import '../widgets/goals_settings_section.dart';
 import '../widgets/profile_hero_card.dart';
@@ -37,7 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _openEditProfileDialog(
-      BuildContext context, UserPreferencesModel preferences) {
+    BuildContext context,
+    UserPreferencesModel preferences,
+  ) {
     final nameController = TextEditingController(text: preferences.userName);
     final titleController = TextEditingController(text: preferences.userTitle);
 
@@ -45,8 +52,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.r),
+        ),
         title: Text('Edit Profile', style: AppTypography.heading3),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -58,8 +66,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: nameController,
               decoration: const InputDecoration(
                 hintText: 'Enter your name',
-                prefixIcon: Icon(Icons.person_outline_rounded,
-                    color: AppColors.accentCyan),
+                prefixIcon: Icon(
+                  Icons.person_outline_rounded,
+                  color: AppColors.accentCyan,
+                ),
               ),
             ),
             SizedBox(height: 14.h),
@@ -69,8 +79,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: titleController,
               decoration: const InputDecoration(
                 hintText: 'e.g. Creator, Lead Developer',
-                prefixIcon: Icon(Icons.badge_outlined,
-                    color: AppColors.accentCyan),
+                prefixIcon: Icon(
+                  Icons.badge_outlined,
+                  color: AppColors.accentCyan,
+                ),
               ),
             ),
           ],
@@ -78,25 +90,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel',
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textMuted)),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: () {
               final newName = nameController.text.trim();
               final newTitle = titleController.text.trim();
               if (newName.isNotEmpty) {
                 context.read<SettingsBloc>().add(
-                      UpdateUserProfileEvent(
-                        userName: newName,
-                        userTitle:
-                            newTitle.isNotEmpty ? newTitle : 'Focus Architect',
-                      ),
-                    );
+                  UpdateUserProfileEvent(
+                    userName: newName,
+                    userTitle: newTitle.isNotEmpty
+                        ? newTitle
+                        : 'Focus Architect',
+                  ),
+                );
               }
               Navigator.of(ctx).pop();
             },
@@ -116,8 +130,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         leading: Navigator.of(context).canPop()
             ? IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18.r, color: AppColors.textPrimary),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18.r,
+                  color: AppColors.textPrimary,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
@@ -151,9 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             builder: (context, state) {
               if (state is SettingsLoading && state is! SettingsLoaded) {
                 return const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.accentCyan,
-                  ),
+                  child: CircularProgressIndicator(color: AppColors.accentCyan),
                 );
               }
 
@@ -195,68 +210,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           preferences: preferences,
                           onChanged: (updated) {
                             context.read<SettingsBloc>().add(
-                                  UpdateTimerSettingsEvent(
-                                    workDurationMinutes:
-                                        updated.workDurationMinutes,
-                                    shortBreakMinutes:
-                                        updated.shortBreakMinutes,
-                                    longBreakMinutes:
-                                        updated.longBreakMinutes,
-                                    longBreakInterval:
-                                        updated.longBreakInterval,
-                                    autoStartBreaks: updated.autoStartBreaks,
-                                    autoStartPomodoros:
-                                        updated.autoStartPomodoros,
-                                  ),
-                                );
+                              UpdateTimerSettingsEvent(
+                                workDurationMinutes:
+                                    updated.workDurationMinutes,
+                                shortBreakMinutes: updated.shortBreakMinutes,
+                                longBreakMinutes: updated.longBreakMinutes,
+                                longBreakInterval: updated.longBreakInterval,
+                                autoStartBreaks: updated.autoStartBreaks,
+                                autoStartPomodoros: updated.autoStartPomodoros,
+                              ),
+                            );
                           },
                         ),
 
+                        // SizedBox(height: 20.h),
+
+                        // 3. Appearance & Theme Switcher Section
+                        // ThemeSwitcherSection(
+                        //   selectedThemeMode: preferences.themeMode,
+                        //   onThemeSelected: (theme) {
+                        //     context
+                        //         .read<ThemeBloc>()
+                        //         .add(SetThemeModeEvent(theme));
+                        //     context
+                        //         .read<SettingsBloc>()
+                        //         .add(UpdateThemeModeEvent(theme));
+                        //   },
+                        // ),
                         SizedBox(height: 20.h),
 
-                        // 3. Dynamic Font Switcher Section
+                        // 4. Dynamic Font Switcher Section
                         FontSwitcherSection(
                           selectedFont: preferences.fontFamily,
                           onFontSelected: (font) {
-                            context
-                                .read<SettingsBloc>()
-                                .add(UpdateFontFamilyEvent(font));
+                            context.read<ThemeBloc>().add(
+                              SetFontFamilyEvent(font),
+                            );
+                            context.read<SettingsBloc>().add(
+                              UpdateFontFamilyEvent(font),
+                            );
                           },
                         ),
 
                         SizedBox(height: 20.h),
 
-                        // 4. Productivity Targets Section
+                        // 5. Day Rollover / Reset Time Section
+                        DayResetSection(
+                          selectedResetHour: preferences.dayResetHour,
+                          onResetHourSelected: (hour) {
+                            context.read<SettingsBloc>().add(
+                              UpdateDayResetHourEvent(hour),
+                            );
+                          },
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 6. Productivity Targets Section
                         GoalsSettingsSection(
                           preferences: preferences,
                           onChanged: (updated) {
                             context.read<SettingsBloc>().add(
-                                  UpdateGoalsEvent(
-                                    dailyTaskGoal: updated.dailyTaskGoal,
-                                    dailyFocusMinutesGoal:
-                                        updated.dailyFocusMinutesGoal,
-                                  ),
-                                );
+                              UpdateGoalsEvent(
+                                dailyTaskGoal: updated.dailyTaskGoal,
+                                dailyFocusMinutesGoal:
+                                    updated.dailyFocusMinutesGoal,
+                              ),
+                            );
                           },
                         ),
 
                         SizedBox(height: 20.h),
 
-                        // 5. Data Management & Danger Zone
+                        // 7. Category Management
+                        GlassmorphicCard(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 14.h,
+                          ),
+                          child: InkWell(
+                            key: const ValueKey(
+                              'settings_manage_categories_btn',
+                            ),
+                            onTap: () => ManageCategoriesSheet.show(context),
+                            borderRadius: BorderRadius.circular(16.r),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(10.r),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentCyan.withAlpha(25),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.accentCyan.withAlpha(60),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.category_rounded,
+                                    color: AppColors.accentCyan,
+                                    size: 20.r,
+                                  ),
+                                ),
+                                SizedBox(width: 14.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Task Categories',
+                                        style: AppTypography.titleSmall
+                                            .copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        'Add, customize, or delete categories',
+                                        style: AppTypography.caption.copyWith(
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14.r,
+                                  color: AppColors.textMuted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // 6. Data Management & Danger Zone
                         DataManagementSection(
                           onResetSettings: () {
-                            context
-                                .read<SettingsBloc>()
-                                .add(const ResetSettingsEvent());
+                            context.read<SettingsBloc>().add(
+                              const ResetSettingsEvent(),
+                            );
                           },
                           onClearAllData: () {
-                            context
-                                .read<SettingsBloc>()
-                                .add(const ClearAllDataConfirmedEvent());
+                            context.read<SettingsBloc>().add(
+                              const ClearAllDataConfirmedEvent(),
+                            );
                             // Refresh tasks after wipe
-                            context
-                                .read<TaskBloc>()
-                                .add(const LoadTasksEvent());
+                            context.read<TaskBloc>().add(
+                              const LoadTasksEvent(),
+                            );
                           },
                         ),
 

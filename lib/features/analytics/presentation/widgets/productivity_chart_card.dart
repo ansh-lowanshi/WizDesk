@@ -112,7 +112,7 @@ class _ProductivityChartCardState extends State<ProductivityChartCard> {
                       barTouchData: BarTouchData(
                         touchTooltipData: BarTouchTooltipData(
                           getTooltipColor: (_) => AppColors.surfaceElevated,
-                          tooltipBorder: const BorderSide(
+                          tooltipBorder: BorderSide(
                             color: AppColors.border,
                             width: 1,
                           ),
@@ -121,7 +121,7 @@ class _ProductivityChartCardState extends State<ProductivityChartCard> {
                             return BarTooltipItem(
                               '${point.label}\n',
                               AppTypography.titleSmall.copyWith(
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                               children: [

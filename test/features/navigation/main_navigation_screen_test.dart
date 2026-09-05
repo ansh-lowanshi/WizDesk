@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
+import 'package:wizdesk/core/theme/bloc/theme_bloc.dart';
 import 'package:wizdesk/features/analytics/presentation/bloc/analytics_bloc.dart';
 import 'package:wizdesk/features/analytics/presentation/bloc/analytics_event.dart';
 import 'package:wizdesk/features/analytics/presentation/bloc/analytics_state.dart';
@@ -162,6 +163,9 @@ void main() {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
+            BlocProvider<ThemeBloc>(
+              create: (_) => ThemeBloc(settingsRepository: settingsRepo),
+            ),
             BlocProvider<SettingsBloc>.value(value: settingsBloc),
             BlocProvider<TaskBloc>.value(value: taskBloc),
             BlocProvider<FocusBloc>.value(value: focusBloc),
@@ -200,11 +204,21 @@ void main() {
 
     await tester.pumpWidget(buildTestWidget());
 
-    // 1. Tab 0: Verify Tasks Dashboard loaded
+    // 1. Tab 0: Verify Today (Home Tasks Dashboard) loaded
     expect(find.byType(MainNavigationScreen), findsOneWidget);
 
-    // 2. Switch to Tab 1: Focus Timer
-    final focusTab = find.byKey(const ValueKey('nav_item_1'));
+    // 2. Switch to Tab 1: Calendar
+    final calendarTab = find.byKey(const ValueKey('nav_item_1'));
+    expect(calendarTab, findsOneWidget);
+    await tester.tap(calendarTab);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Schedule Calendar'), findsOneWidget);
+    expect(find.text('Navigation Integration Task'), findsOneWidget);
+
+    // 3. Switch to Tab 2: Focus Timer
+    final focusTab = find.byKey(const ValueKey('nav_item_2'));
     expect(focusTab, findsOneWidget);
     await tester.tap(focusTab);
     await tester.pump();
@@ -213,8 +227,8 @@ void main() {
     expect(find.text('Deep Focus'), findsOneWidget);
     expect(find.text('25:00'), findsOneWidget);
 
-    // 3. Switch to Tab 2: Analytics
-    final analyticsTab = find.byKey(const ValueKey('nav_item_2'));
+    // 4. Switch to Tab 3: Analytics
+    final analyticsTab = find.byKey(const ValueKey('nav_item_3'));
     expect(analyticsTab, findsOneWidget);
     await tester.tap(analyticsTab);
     await tester.pump();
@@ -223,8 +237,8 @@ void main() {
     expect(find.text('Productivity Analytics'), findsOneWidget);
     expect(find.text('Focus Activity'), findsOneWidget);
 
-    // 4. Switch to Tab 3: Settings
-    final settingsTab = find.byKey(const ValueKey('nav_item_3'));
+    // 5. Switch to Tab 4: Settings
+    final settingsTab = find.byKey(const ValueKey('nav_item_4'));
     expect(settingsTab, findsOneWidget);
     await tester.tap(settingsTab);
     await tester.pump();
@@ -233,10 +247,15 @@ void main() {
     expect(find.text('Profile & Settings'), findsOneWidget);
     expect(find.text('Focus Timer Setup'), findsOneWidget);
 
-    // 5. Test Quick Add (+) Button opens AddEditTaskScreen
-    final quickAddBtn = find.byKey(const ValueKey('nav_quick_add_btn'));
-    expect(quickAddBtn, findsOneWidget);
-    await tester.tap(quickAddBtn);
+    // 6. Switch back to Today and test Header Add Task button
+    final todayTab = find.byKey(const ValueKey('nav_item_0'));
+    await tester.tap(todayTab);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final headerAddBtn = find.byKey(const ValueKey('today_add_task_header_btn'));
+    expect(headerAddBtn, findsOneWidget);
+    await tester.tap(headerAddBtn);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 

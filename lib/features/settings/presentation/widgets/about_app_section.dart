@@ -19,17 +19,32 @@ class AboutAppSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 44.r,
-                height: 44.r,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  size: 22.r,
-                  color: Colors.white,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12.r),
+                child: Container(
+                  width: 46.r,
+                  height: 46.r,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: Image.asset(
+                    AppConstants.appLogo,
+                    width: 46.r,
+                    height: 46.r,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                      ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 22.r,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 14.w),
@@ -42,7 +57,9 @@ class AboutAppSection extends StatelessWidget {
                     Text(
                       '${AppConstants.appTagline} • v1.0.0',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.accentCyan,
+                        color: AppColors.isDarkMode
+                            ? AppColors.accentCyan
+                            : AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

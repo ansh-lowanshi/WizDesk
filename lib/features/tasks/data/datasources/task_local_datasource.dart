@@ -132,17 +132,6 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
   Future<void> logFocusSession(FocusSessionModel session) async {
     try {
       await sessionsBox.put(session.id, session.toMap());
-
-      // If attached to a task, increment the task's spentMinutes
-      if (session.taskId != null && session.taskId!.isNotEmpty) {
-        final task = await getTaskById(session.taskId!);
-        if (task != null) {
-          final updated = task.copyWith(
-            spentMinutes: task.spentMinutes + session.durationMinutes,
-          );
-          await saveTask(TaskModel.fromEntity(updated));
-        }
-      }
     } catch (e) {
       throw CacheException('Failed to log focus session: $e');
     }

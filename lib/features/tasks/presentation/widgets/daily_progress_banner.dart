@@ -24,9 +24,14 @@ class DailyProgressBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double percentage =
-        totalTasks > 0 ? (completedTasks / totalTasks).clamp(0.0, 1.0) : 0.0;
+    final double percentage = totalTasks > 0
+        ? (completedTasks / totalTasks).clamp(0.0, 1.0)
+        : 0.0;
     final int percentInt = (percentage * 100).toInt();
+
+    final accentColor = AppColors.isDarkMode
+        ? AppColors.accentCyan
+        : AppColors.primary;
 
     return GlassmorphicCard(
       gradient: AppColors.cardGradient,
@@ -48,18 +53,24 @@ class DailyProgressBanner extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                        decoration: AppDecorations.badge(color: AppColors.accentCyan),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: AppDecorations.badge(color: accentColor),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.auto_awesome_rounded,
-                                size: 13.r, color: AppColors.accentCyan),
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 13.r,
+                              color: accentColor,
+                            ),
                             SizedBox(width: 5.w),
                             Text(
                               'TODAY\'S PROGRESS',
                               style: AppTypography.badge.copyWith(
-                                color: AppColors.accentCyan,
+                                color: accentColor,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -71,7 +82,7 @@ class DailyProgressBanner extends StatelessWidget {
                     Text(
                       '$completedTasks of $totalTasks Tasks Done',
                       style: AppTypography.titleMedium.copyWith(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -87,7 +98,7 @@ class DailyProgressBanner extends StatelessWidget {
                 children: [
                   GlowContainer(
                     isCircle: true,
-                    glowColor: AppColors.accentCyan,
+                    glowColor: accentColor,
                     blurRadius: 18,
                     spreadRadius: 1,
                     backgroundColor: AppColors.surfaceElevated,
@@ -98,9 +109,7 @@ class DailyProgressBanner extends StatelessWidget {
                         value: percentage,
                         strokeWidth: 6.r,
                         backgroundColor: AppColors.surfaceLight,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.accentCyan,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                         strokeCap: StrokeCap.round,
                       ),
                     ),
@@ -108,7 +117,7 @@ class DailyProgressBanner extends StatelessWidget {
                   Text(
                     '$percentInt%',
                     style: AppTypography.titleSmall.copyWith(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -137,11 +146,7 @@ class DailyProgressBanner extends StatelessWidget {
                     value: '$completedTasks',
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 20.h,
-                  color: AppColors.divider,
-                ),
+                Container(width: 1, height: 20.h, color: AppColors.divider),
                 Expanded(
                   child: _buildMetricItem(
                     icon: Icons.pending_actions_rounded,
@@ -150,17 +155,15 @@ class DailyProgressBanner extends StatelessWidget {
                     value: '${totalTasks - completedTasks}',
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 20.h,
-                  color: AppColors.divider,
-                ),
+                Container(width: 1, height: 20.h, color: AppColors.divider),
                 Expanded(
                   child: _buildMetricItem(
                     icon: Icons.timer_outlined,
                     color: AppColors.primaryLight,
                     label: 'Focus Time',
-                    value: DateTimeFormatter.formatDurationMinutes(totalFocusMinutes),
+                    value: DateTimeFormatter.formatDurationMinutes(
+                      totalFocusMinutes,
+                    ),
                   ),
                 ),
               ],
@@ -185,16 +188,22 @@ class DailyProgressBanner extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 16.r, color: color),
-            SizedBox(width: 5.w),
+            SizedBox(width: 10.w),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(value,
-                    style: AppTypography.titleSmall.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w700)),
-                Text(label,
-                    style: AppTypography.caption.copyWith(fontSize: 10.sp)),
+                Text(
+                  value,
+                  style: AppTypography.titleSmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: AppTypography.caption.copyWith(fontSize: 10.sp),
+                ),
               ],
             ),
           ],

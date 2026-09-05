@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -30,6 +31,17 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
   @override
   void initState() {
     super.initState();
+    // Allow rotation (portrait & landscape) in Fullscreen Focus Timer
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    // Hide phone top status bar and bottom system navigation bar with edge-to-edge layout
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -44,18 +56,41 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
     );
   }
 
+  void _restoreSystemOverlays() {
+    // Re-lock orientation to portrait when exiting fullscreen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+    );
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.background,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+  }
+
   @override
   void dispose() {
+    _restoreSystemOverlays();
     _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF04060E), // Ultra deep midnight
-      body: SafeArea(
-        child: BlocBuilder<FocusBloc, FocusState>(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        _restoreSystemOverlays();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: BlocBuilder<FocusBloc, FocusState>(
           builder: (context, state) {
             final modeColor = state.mode.color;
             final isRunning = state.isRunning;
@@ -70,13 +105,14 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                       return Transform.scale(
                         scale: isRunning ? _pulseAnimation.value : 1.0,
                         child: Container(
-                          width: 280.r,
-                          height: 280.r,
+                          width: 300.r,
+                          height: 300.r,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                modeColor.withAlpha(isRunning ? 60 : 25),
+                                modeColor.withAlpha(isRunning ? 45 : 20),
+                                modeColor.withAlpha(isRunning ? 15 : 5),
                                 modeColor.withAlpha(0),
                               ],
                             ),
@@ -87,60 +123,69 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                   ),
                 ),
 
-                // Top Bar: Exit button & Phase mode
+                // Top Bar: Exit button & Phase mode (Safe padded)
                 Positioned(
-                  top: 16.h,
+                  top: 0,
                   left: 20.w,
                   right: 20.w,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Phase Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 14.w, vertical: 6.h),
-                        decoration: AppDecorations.badge(
-                          color: modeColor,
-                          borderRadius: 20.r,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8.r,
-                              height: 8.r,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: modeColor,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 16.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                        // Phase Badge
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 14.w, vertical: 6.h),
+                          decoration: AppDecorations.badge(
+                            color: modeColor,
+                            borderRadius: 20.r,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8.r,
+                                height: 8.r,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: modeColor,
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              state.mode.label.toUpperCase(),
-                              style: AppTypography.badge.copyWith(
-                                color: modeColor,
-                                letterSpacing: 1.2,
-                                fontWeight: FontWeight.w800,
+                              SizedBox(width: 8.w),
+                              Text(
+                                state.mode.label.toUpperCase(),
+                                style: AppTypography.badge.copyWith(
+                                  color: modeColor,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // Exit Fullscreen Button
-                      IconButton(
-                        icon: Icon(
-                          Icons.fullscreen_exit_rounded,
-                          size: 28.r,
-                          color: AppColors.textSecondary,
+                        // Exit Fullscreen Button
+                        IconButton(
+                          icon: Icon(
+                            Icons.fullscreen_exit_rounded,
+                            size: 28.r,
+                            color: AppColors.textSecondary,
+                          ),
+                          onPressed: () {
+                            _restoreSystemOverlays();
+                            Navigator.of(context).pop();
+                          },
                         ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
+              ),
 
-                // Center: Big Timer Display & Progress Ring
+              // Center: Big Timer Display & Progress Ring
                 Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -155,12 +200,15 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.task_alt_rounded,
-                                    size: 16.r, color: AppColors.accentCyan),
+                                    size: 16.r,
+                                    color: AppColors.isDarkMode
+                                        ? AppColors.accentCyan
+                                        : AppColors.primary),
                                 SizedBox(width: 8.w),
                                 Text(
                                   state.activeTask!.title,
                                   style: AppTypography.titleMedium.copyWith(
-                                    color: Colors.white70,
+                                    color: AppColors.textSecondary,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -189,7 +237,7 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                                 value: state.progress,
                                 strokeWidth: 8.r,
                                 backgroundColor:
-                                    AppColors.surfaceElevated.withAlpha(120),
+                                    AppColors.surfaceElevated,
                                 valueColor:
                                     AlwaysStoppedAnimation<Color>(modeColor),
                                 strokeCap: StrokeCap.round,
@@ -205,7 +253,7 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                                 state.formattedTime,
                                 style: AppTypography.timerDisplayFullscreen(
                                   fontSize: 62,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                               SizedBox(height: 6.h),
@@ -322,7 +370,7 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                                 ? Icons.pause_rounded
                                 : Icons.play_arrow_rounded,
                             size: 36.r,
-                            color: AppColors.background,
+                            color: Colors.white,
                           ),
                         ),
                       ),

@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 
 /// Wiz Desk Design System Color Palette
-/// Curated sleek dark mode with neon cyan and electric blue accents
+/// Dynamic theme palette supporting sleek dark mode and crisp modern light mode
 class AppColors {
-  // Backgrounds
-  static const Color background = Color(0xFF080C1E);
-  static const Color backgroundSecondary = Color(0xFF0D1432);
-  static const Color surface = Color(0xFF131C42);
-  static const Color surfaceElevated = Color(0xFF182352);
-  static const Color surfaceLight = Color(0xFF1F2D68);
+  /// Global active theme mode flag, synchronized with MaterialApp theme
+  static bool isDarkMode = true;
 
-  // Primary & Neon Accents
+  // Backgrounds
+  static Color get background =>
+      isDarkMode ? const Color(0xFF080C1E) : const Color(0xFFF8FAFC);
+  static Color get backgroundSecondary =>
+      isDarkMode ? const Color(0xFF0D1432) : const Color(0xFFF1F5F9);
+  static Color get surface =>
+      isDarkMode ? const Color(0xFF131C42) : const Color(0xFFFFFFFF);
+  static Color get surfaceElevated =>
+      isDarkMode ? const Color(0xFF182352) : const Color(0xFFF8FAFC);
+  static Color get surfaceLight =>
+      isDarkMode ? const Color(0xFF1F2D68) : const Color(0xFFEDF2F7);
+
+  // Primary & Neon Accents (Consistent brand identity)
   static const Color primary = Color(0xFF3874FF);
   static const Color primaryLight = Color(0xFF5A8DFF);
   static const Color primaryDark = Color(0xFF1A56DB);
@@ -32,16 +40,23 @@ class AppColors {
   static const Color statusArchived = Color(0xFF64748B);
 
   // Text & Content Colors
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color textTertiary = Color(0xFF475569);
+  static Color get textPrimary =>
+      isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
+  static Color get textSecondary =>
+      isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+  static Color get textMuted =>
+      isDarkMode ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+  static Color get textTertiary =>
+      isDarkMode ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
 
   // Borders, Dividers & Cards
-  static const Color border = Color(0xFF222F5E);
-  static const Color borderLight = Color(0xFF2E3E7A);
-  static const Color borderHighlight = Color(0xFF3874FF);
-  static const Color divider = Color(0xFF1A244D);
+  static Color get border =>
+      isDarkMode ? const Color(0xFF222F5E) : const Color(0xFFE2E8F0);
+  static Color get borderLight =>
+      isDarkMode ? const Color(0xFF2E3E7A) : const Color(0xFFCBD5E1);
+  static Color get borderHighlight => const Color(0xFF3874FF);
+  static Color get divider =>
+      isDarkMode ? const Color(0xFF1A244D) : const Color(0xFFE2E8F0);
 
   // Feedback Colors
   static const Color success = Color(0xFF10B981);
@@ -56,11 +71,13 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF141D45), Color(0xFF0E1636)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static LinearGradient get cardGradient => LinearGradient(
+        colors: isDarkMode
+            ? [const Color(0xFF141D45), const Color(0xFF0E1636)]
+            : [const Color(0xFFFFFFFF), const Color(0xFFF8FAFC)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
 
   static const LinearGradient timerProgressGradient = LinearGradient(
     colors: [Color(0xFF00F0FF), Color(0xFF3874FF)],
@@ -74,9 +91,11 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  static const LinearGradient darkOverlayGradient = LinearGradient(
-    colors: [Colors.transparent, Color(0xFF080C1E)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
+  static LinearGradient get darkOverlayGradient => LinearGradient(
+        colors: isDarkMode
+            ? [Colors.transparent, const Color(0xFF080C1E)]
+            : [Colors.transparent, const Color(0xFFF8FAFC)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
 }

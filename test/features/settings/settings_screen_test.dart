@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
+import 'package:wizdesk/core/theme/bloc/theme_bloc.dart';
 import 'package:wizdesk/features/settings/domain/models/app_font_family.dart';
 import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
 import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
@@ -153,6 +154,9 @@ void main() {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
+            BlocProvider<ThemeBloc>(
+              create: (_) => ThemeBloc(settingsRepository: settingsRepo),
+            ),
             BlocProvider<SettingsBloc>.value(value: settingsBloc),
             BlocProvider<TaskBloc>.value(value: taskBloc),
           ],
@@ -190,6 +194,7 @@ void main() {
     expect(find.text('Creator'), findsOneWidget);
     expect(find.text('Focus Timer Setup'), findsOneWidget);
     expect(find.text('Typography & Font'), findsOneWidget);
+    expect(find.text('Day Reset & Rollover'), findsOneWidget);
     expect(find.text('Productivity Targets'), findsOneWidget);
     expect(find.text('Data & Preferences'), findsOneWidget);
     expect(find.text('Wiz Desk'), findsOneWidget);

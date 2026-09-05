@@ -2,7 +2,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/task_enums.dart';
+import '../../domain/usecases/add_category_usecase.dart';
 import '../../domain/usecases/add_task_usecase.dart';
+import '../../domain/usecases/delete_category_usecase.dart';
 import '../../domain/usecases/delete_task_usecase.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
 import '../../domain/usecases/get_tasks_usecase.dart';
@@ -17,6 +19,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   final UpdateTaskUseCase updateTaskUseCase;
   final DeleteTaskUseCase deleteTaskUseCase;
   final GetCategoriesUseCase getCategoriesUseCase;
+  final AddCategoryUseCase? addCategoryUseCase;
+  final DeleteCategoryUseCase? deleteCategoryUseCase;
 
   TaskBloc({
     required this.getTasksUseCase,
@@ -24,6 +28,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     required this.updateTaskUseCase,
     required this.deleteTaskUseCase,
     required this.getCategoriesUseCase,
+    this.addCategoryUseCase,
+    this.deleteCategoryUseCase,
   }) : super(const TaskInitial()) {
     on<LoadTasksEvent>(_onLoadTasks);
     on<AddTaskEvent>(_onAddTask);
@@ -37,6 +43,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<FilterByDateEvent>(_onFilterByDate);
     on<SearchTasksEvent>(_onSearchTasks);
     on<AddCategoryEvent>(_onAddCategory);
+    on<DeleteCategoryEvent>(_onDeleteCategory);
   }
 
   /// Initial load or refresh from storage
@@ -54,7 +61,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         statusFilter: TaskStatusFilter.all,
         categoryFilterId: null,
         priorityFilter: null,
-        dateFilter: TaskDateFilter.all,
+        dateFilter: TaskDateFilter.today,
         searchQuery: '',
       );
 
@@ -62,6 +69,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         allTasks: tasks,
         filteredTasks: filtered,
         categories: categories,
+        dateFilter: TaskDateFilter.today,
       ));
     } catch (e) {
       emit(TaskError('Failed to load tasks: $e'));
@@ -172,10 +180,40 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
     try {
       final task = current.allTasks.firstWhere((t) => t.id == event.taskId);
-      final isNowCompleted = task.status != TaskStatus.completed;
+      final targetDate = event.date ?? DateTime.now();
+      final dateStr =
+          '${targetDate.year.toString().padLeft(4, '0')}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+
+      final completedDates = List<String>.from(task.completedDates);
+      final bool wasCompletedOnDate = task.isCompletedOn(targetDate);
+
+      if (wasCompletedOnDate) {
+        completedDates.remove(dateStr);
+      } else {
+        if (!completedDates.contains(dateStr)) {
+          completedDates.add(dateStr);
+        }
+      }
+
+      final bool isNowCompletedOnDate = !wasCompletedOnDate;
+      final now = DateTime.now();
+      final isToday = targetDate.year == now.year &&
+          targetDate.month == now.month &&
+          targetDate.day == now.day;
+
+      TaskStatus newStatus = task.status;
+      if (task.frequency == TaskFrequency.once) {
+        newStatus =
+            isNowCompletedOnDate ? TaskStatus.completed : TaskStatus.todo;
+      } else if (isToday) {
+        newStatus =
+            isNowCompletedOnDate ? TaskStatus.completed : TaskStatus.todo;
+      }
+
       final updatedTask = task.copyWith(
-        status: isNowCompleted ? TaskStatus.completed : TaskStatus.todo,
-        completedAt: isNowCompleted ? DateTime.now() : null,
+        completedDates: completedDates,
+        status: newStatus,
+        completedAt: isNowCompletedOnDate ? targetDate : null,
       );
 
       await updateTaskUseCase(updatedTask);
@@ -364,8 +402,55 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     if (state is! TaskLoaded) return;
     final current = state as TaskLoaded;
 
-    final updatedCategories = [...current.categories, event.category];
-    emit(current.copyWith(categories: updatedCategories));
+    try {
+      if (addCategoryUseCase != null) {
+        await addCategoryUseCase!(event.category);
+      }
+      final updatedCategories = [...current.categories, event.category];
+      emit(current.copyWith(categories: updatedCategories));
+    } catch (e) {
+      emit(TaskError('Failed to add category: $e'));
+    }
+  }
+
+  /// Delete existing category
+  Future<void> _onDeleteCategory(
+    DeleteCategoryEvent event,
+    Emitter<TaskState> emit,
+  ) async {
+    if (state is! TaskLoaded) return;
+    final current = state as TaskLoaded;
+
+    try {
+      if (deleteCategoryUseCase != null) {
+        await deleteCategoryUseCase!(event.categoryId);
+      }
+      final updatedCategories = current.categories
+          .where((cat) => cat.id != event.categoryId)
+          .toList();
+
+      final updatedCategoryFilter =
+          current.categoryFilterId == event.categoryId
+              ? null
+              : current.categoryFilterId;
+
+      final filtered = _computeFilteredTasks(
+        allTasks: current.allTasks,
+        statusFilter: current.statusFilter,
+        categoryFilterId: updatedCategoryFilter,
+        priorityFilter: current.priorityFilter,
+        dateFilter: current.dateFilter,
+        searchQuery: current.searchQuery,
+      );
+
+      emit(current.copyWith(
+        categories: updatedCategories,
+        categoryFilterId: () => updatedCategoryFilter,
+        filteredTasks: filtered,
+      ));
+    } catch (e) {
+      emit(TaskError('Failed to delete category: $e'));
+    }
   }
 
   /// Pure filtering computation logic
@@ -383,17 +468,29 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
     return allTasks.where((task) {
       // 1. Status Filter
-      if (statusFilter == TaskStatusFilter.inProgress &&
-          task.status != TaskStatus.inProgress) {
-        return false;
+      if (statusFilter == TaskStatusFilter.inProgress) {
+        final isDoneOnDate = dateFilter == TaskDateFilter.today
+            ? task.isCompletedOn(now)
+            : task.status == TaskStatus.completed;
+        if (isDoneOnDate || task.status != TaskStatus.inProgress) {
+          return false;
+        }
       }
-      if (statusFilter == TaskStatusFilter.pending &&
-          task.status != TaskStatus.todo) {
-        return false;
+      if (statusFilter == TaskStatusFilter.pending) {
+        final isDoneOnDate = dateFilter == TaskDateFilter.today
+            ? task.isCompletedOn(now)
+            : task.status == TaskStatus.completed;
+        if (isDoneOnDate || task.status != TaskStatus.todo) {
+          return false;
+        }
       }
-      if (statusFilter == TaskStatusFilter.completed &&
-          task.status != TaskStatus.completed) {
-        return false;
+      if (statusFilter == TaskStatusFilter.completed) {
+        final isDoneOnDate = dateFilter == TaskDateFilter.today
+            ? task.isCompletedOn(now)
+            : task.status == TaskStatus.completed;
+        if (!isDoneOnDate) {
+          return false;
+        }
       }
 
       // 2. Category Filter

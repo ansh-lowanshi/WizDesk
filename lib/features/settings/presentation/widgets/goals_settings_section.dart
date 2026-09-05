@@ -105,7 +105,7 @@ class GoalsSettingsSection extends StatelessWidget {
             ],
           ),
 
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: AppColors.divider, height: 24),
 
           // 2. Daily Focus Time Target
           Row(

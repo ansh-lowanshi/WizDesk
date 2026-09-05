@@ -4,6 +4,7 @@ class AppConstants {
   static const String appName = 'Wiz Desk';
   static const String appTagline = 'Focus. Plan. Achieve.';
   static const String appVersion = '1.0.0';
+  static const String appLogo = 'assets/images/WizDesk_logo.png';
 
   // Hive Box Names
   static const String taskBoxName = 'wizdesk_tasks_box';

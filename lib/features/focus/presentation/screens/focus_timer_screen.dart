@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -9,7 +10,9 @@ import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../../core/widgets/glow_container.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../tasks/domain/entities/task_entity.dart';
+import '../../../tasks/domain/entities/task_enums.dart';
 import '../../../tasks/presentation/bloc/task_bloc.dart';
+import '../../../tasks/presentation/bloc/task_event.dart';
 import '../../../tasks/presentation/bloc/task_state.dart';
 import '../../domain/models/pomodoro_enums.dart';
 import '../bloc/focus_bloc.dart';
@@ -39,10 +42,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     if (widget.initialTask != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<FocusBloc>().add(
-              StartFocusSessionEvent(
-                task: widget.initialTask,
-                customDurationMinutes: widget.initialTask!.estimatedMinutes,
-              ),
+              SetActiveTaskEvent(widget.initialTask),
             );
       });
     }
@@ -104,12 +104,12 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             tileColor: AppColors.surface,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.r),
-                              side: const BorderSide(
+                              side: BorderSide(
                                   color: AppColors.border, width: 0.8),
                             ),
                             title: Text(task.title,
                                 style: AppTypography.titleSmall
-                                    .copyWith(color: Colors.white)),
+                                    .copyWith(color: AppColors.textPrimary)),
                             subtitle: Text(
                               '${task.estimatedMinutes} min estimated • ${task.priority.label} priority',
                               style: AppTypography.caption,
@@ -132,9 +132,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                     tileColor: AppColors.background,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      side: const BorderSide(color: AppColors.border),
+                      side: BorderSide(color: AppColors.border),
                     ),
-                    leading: const Icon(Icons.close_rounded,
+                    leading: Icon(Icons.close_rounded,
                         color: AppColors.textMuted),
                     title: Text('Continue without specific task',
                         style: AppTypography.bodyMedium),
@@ -154,12 +154,724 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     );
   }
 
-  void _openFullscreenMode() {
-    Navigator.of(context).push(
+  Future<void> _showTaskProgressSheet(BuildContext context, TaskEntity task) async {
+    final today = DateTime.now();
+    int currentSpent = task.getSpentMinutesFor(today);
+    int currentEstimated = task.estimatedMinutes;
+    TaskStatus currentStatus = task.status;
+    int currentPercent = task.getProgressPercentFor(today);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setSheetState) {
+            final isDone = currentStatus == TaskStatus.completed || currentPercent >= 100;
+
+            Future<void> promptPercentDialog() async {
+              final textController =
+                  TextEditingController(text: currentPercent.toString());
+              final result = await showDialog<int>(
+                context: dialogCtx,
+                builder: (numCtx) => AlertDialog(
+                  backgroundColor: AppColors.surfaceElevated,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18.r),
+                    side: BorderSide(color: AppColors.border, width: 1.2),
+                  ),
+                  title: Row(
+                    children: [
+                      Icon(Icons.edit_note_rounded,
+                          color: AppColors.accentCyan, size: 22.r),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Set Progress (0 - 100%)',
+                        style: AppTypography.heading3.copyWith(fontSize: 16.sp),
+                      ),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Enter exact progress percentage:',
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.textMuted),
+                      ),
+                      SizedBox(height: 12.h),
+                      TextField(
+                        controller: textController,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        style: AppTypography.heading2.copyWith(
+                          color: AppColors.accentCyan,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        decoration: InputDecoration(
+                          suffixText: '%',
+                          suffixStyle: AppTypography.titleMedium.copyWith(
+                            color: AppColors.accentCyan,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          hintText: '0 - 100',
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(numCtx).pop(),
+                      child: Text('Cancel', style: AppTypography.buttonMedium),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentCyan,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: () {
+                        final parsed = int.tryParse(textController.text.trim());
+                        if (parsed != null) {
+                          Navigator.of(numCtx).pop(parsed.clamp(0, 100));
+                        } else {
+                          Navigator.of(numCtx).pop();
+                        }
+                      },
+                      child: Text(
+                        'Set',
+                        style: AppTypography.buttonMedium.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (result != null) {
+                setSheetState(() {
+                  currentPercent = result;
+                  if (result >= 100) {
+                    currentStatus = TaskStatus.completed;
+                  } else if (result > 0 && currentStatus == TaskStatus.todo) {
+                    currentStatus = TaskStatus.inProgress;
+                  } else if (result == 0) {
+                    currentStatus = TaskStatus.todo;
+                  }
+                });
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20.w,
+                right: 20.w,
+                top: 20.h,
+                bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + 24.h,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag handle
+                    Center(
+                      child: Container(
+                        width: 40.w,
+                        height: 4.h,
+                        decoration: BoxDecoration(
+                          color: AppColors.borderLight,
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentCyan.withAlpha(35),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.trending_up_rounded,
+                            color: AppColors.accentCyan,
+                            size: 22.r,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Update Task Progress',
+                                style: AppTypography.heading3.copyWith(fontSize: 17.sp),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                task.title,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              size: 20.r, color: AppColors.textMuted),
+                          onPressed: () => Navigator.of(dialogCtx).pop(),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 18.h),
+
+                    // Percentage Section Header & Display
+                    Container(
+                      padding: EdgeInsets.all(14.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: isDone
+                              ? AppColors.success.withAlpha(120)
+                              : AppColors.accentCyan.withAlpha(80),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'COMPLETION PERCENTAGE',
+                                style: AppTypography.captionBold.copyWith(
+                                  color: AppColors.textSecondary,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: promptPercentDialog,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 3.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: (isDone ? AppColors.success : AppColors.accentCyan)
+                                        .withAlpha(40),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    border: Border.all(
+                                      color: (isDone
+                                              ? AppColors.success
+                                              : AppColors.accentCyan)
+                                          .withAlpha(120),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$currentPercent%',
+                                        style: AppTypography.titleSmall.copyWith(
+                                          color: isDone
+                                              ? AppColors.success
+                                              : AppColors.accentCyan,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15.sp,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      Icon(
+                                        Icons.edit_rounded,
+                                        size: 12.r,
+                                        color: isDone
+                                            ? AppColors.success
+                                            : AppColors.accentCyan,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+
+                          // Fine tune +/- 1% buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: Icon(
+                                  Icons.remove_circle_outline_rounded,
+                                  size: 20.r,
+                                  color: AppColors.textMuted,
+                                ),
+                                tooltip: '-1%',
+                                onPressed: currentPercent > 0
+                                    ? () {
+                                        setSheetState(() {
+                                          currentPercent--;
+                                          if (currentPercent == 0) {
+                                            currentStatus = TaskStatus.todo;
+                                          }
+                                        });
+                                      }
+                                    : null,
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: Icon(
+                                  Icons.add_circle_outline_rounded,
+                                  size: 20.r,
+                                  color: AppColors.accentCyan,
+                                ),
+                                tooltip: '+1%',
+                                onPressed: currentPercent < 100
+                                    ? () {
+                                        setSheetState(() {
+                                          currentPercent++;
+                                          if (currentPercent >= 100) {
+                                            currentStatus = TaskStatus.completed;
+                                          } else if (currentStatus == TaskStatus.todo) {
+                                            currentStatus = TaskStatus.inProgress;
+                                          }
+                                        });
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+
+                          // Slider to interactively adjust percentage (1% precision)
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor:
+                                  isDone ? AppColors.success : AppColors.accentCyan,
+                              inactiveTrackColor: AppColors.surfaceElevated,
+                              thumbColor: isDone ? AppColors.success : AppColors.accentCyan,
+                              overlayColor: (isDone
+                                      ? AppColors.success
+                                      : AppColors.accentCyan)
+                                  .withAlpha(40),
+                              trackHeight: 6.h,
+                            ),
+                            child: Slider(
+                              value: currentPercent.clamp(0, 100).toDouble(),
+                              min: 0,
+                              max: 100,
+                              divisions: 100,
+                              onChanged: (val) {
+                                final newVal = val.round();
+                                setSheetState(() {
+                                  currentPercent = newVal;
+                                  if (newVal >= 100) {
+                                    currentStatus = TaskStatus.completed;
+                                  } else if (newVal > 0 && currentStatus == TaskStatus.todo) {
+                                    currentStatus = TaskStatus.inProgress;
+                                  } else if (newVal == 0) {
+                                    currentStatus = TaskStatus.todo;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+
+                          // Quick % Jump Chips
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [0, 25, 50, 75, 100].map((pct) {
+                              final isSelected = currentPercent == pct;
+                              return GestureDetector(
+                                onTap: () {
+                                  setSheetState(() {
+                                    currentPercent = pct;
+                                    if (pct >= 100) {
+                                      currentStatus = TaskStatus.completed;
+                                    } else if (pct > 0 && currentStatus == TaskStatus.todo) {
+                                      currentStatus = TaskStatus.inProgress;
+                                    } else if (pct == 0) {
+                                      currentStatus = TaskStatus.todo;
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? (pct == 100
+                                                ? AppColors.success
+                                                : AppColors.accentCyan)
+                                            .withAlpha(50)
+                                        : AppColors.surfaceElevated,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? (pct == 100
+                                              ? AppColors.success
+                                              : AppColors.accentCyan)
+                                          : AppColors.border,
+                                      width: isSelected ? 1.5 : 0.8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '$pct%',
+                                    style: AppTypography.captionBold.copyWith(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppColors.textSecondary,
+                                      fontSize: 11.sp,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 18.h),
+
+                    // Status Selector Row
+                    Text(
+                      'STATUS',
+                      style: AppTypography.captionBold.copyWith(
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        TaskStatus.todo,
+                        TaskStatus.inProgress,
+                        TaskStatus.completed,
+                      ].map((status) {
+                        final isSelected = currentStatus == status;
+                        Color statusColor;
+                        switch (status) {
+                          case TaskStatus.completed:
+                            statusColor = AppColors.success;
+                            break;
+                          case TaskStatus.inProgress:
+                            statusColor = AppColors.accentCyan;
+                            break;
+                          case TaskStatus.todo:
+                          default:
+                            statusColor = AppColors.textSecondary;
+                            break;
+                        }
+
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setSheetState(() {
+                                currentStatus = status;
+                                if (status == TaskStatus.completed) {
+                                  currentPercent = 100;
+                                } else if (status == TaskStatus.todo && currentPercent == 100) {
+                                  currentPercent = 0;
+                                }
+                              });
+                            },
+                            child: Container(
+                              margin: EdgeInsets.symmetric(horizontal: 4.w),
+                              padding: EdgeInsets.symmetric(vertical: 9.h),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? statusColor.withAlpha(40)
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: isSelected ? statusColor : AppColors.border,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  status.label,
+                                  style: AppTypography.badge.copyWith(
+                                    color: isSelected ? Colors.white : AppColors.textMuted,
+                                    fontWeight:
+                                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    SizedBox(height: 18.h),
+
+                    // Spent Minutes Adjuster
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TIME SPENT',
+                              style: AppTypography.captionBold.copyWith(
+                                color: AppColors.textSecondary,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              '$currentSpent minutes logged',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: AppColors.accentCyan,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  side: BorderSide(color: AppColors.border),
+                                ),
+                              ),
+                              icon: Icon(Icons.remove_rounded,
+                                  size: 18.r, color: AppColors.textPrimary),
+                              onPressed: currentSpent >= 5
+                                  ? () {
+                                      setSheetState(() {
+                                        currentSpent -= 5;
+                                      });
+                                    }
+                                  : null,
+                            ),
+                            SizedBox(width: 8.w),
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                              ),
+                              icon: Icon(Icons.add_rounded,
+                                  size: 18.r, color: AppColors.textPrimary),
+                              onPressed: () {
+                                setSheetState(() {
+                                  currentSpent += 5;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 14.h),
+
+                    // Estimated Minutes Adjuster
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ESTIMATED TARGET',
+                              style: AppTypography.captionBold.copyWith(
+                                color: AppColors.textSecondary,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              '$currentEstimated minutes total',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  side: BorderSide(color: AppColors.border),
+                                ),
+                              ),
+                              icon: Icon(Icons.remove_rounded,
+                                  size: 18.r, color: AppColors.textPrimary),
+                              onPressed: currentEstimated >= 10
+                                  ? () {
+                                      setSheetState(() {
+                                        currentEstimated -= 5;
+                                      });
+                                    }
+                                  : null,
+                            ),
+                            SizedBox(width: 8.w),
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                              ),
+                              icon: Icon(Icons.add_rounded,
+                                  size: 18.r, color: AppColors.textPrimary),
+                              onPressed: () {
+                                setSheetState(() {
+                                  currentEstimated += 5;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 24.h),
+
+                    // Save & Update Progress Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48.h,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                           backgroundColor: AppColors.accentCyan,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          final dateKey = TaskEntity.formatDateKey(today);
+                          final updatedDailyProgress =
+                              Map<String, int>.from(task.dailyProgress);
+                          final updatedDailySpent =
+                              Map<String, int>.from(task.dailySpentMinutes);
+                          final updatedCompletedDates =
+                              List<String>.from(task.completedDates);
+
+                          if (task.progressMode == TaskProgressMode.individual &&
+                              task.frequency != TaskFrequency.once) {
+                            updatedDailyProgress[dateKey] = currentPercent;
+                            updatedDailySpent[dateKey] = currentSpent;
+                            if (isDone) {
+                              if (!updatedCompletedDates.contains(dateKey)) {
+                                updatedCompletedDates.add(dateKey);
+                              }
+                            } else {
+                              updatedCompletedDates.remove(dateKey);
+                            }
+                          }
+
+                          final updatedTask = task.copyWith(
+                            status: currentStatus,
+                            spentMinutes: task.progressMode ==
+                                        TaskProgressMode.cumulative ||
+                                    task.frequency == TaskFrequency.once
+                                ? currentSpent
+                                : task.spentMinutes,
+                            estimatedMinutes: currentEstimated,
+                            progressPercent: task.progressMode ==
+                                        TaskProgressMode.cumulative ||
+                                    task.frequency == TaskFrequency.once
+                                ? currentPercent
+                                : task.progressPercent,
+                            dailyProgress: updatedDailyProgress,
+                            dailySpentMinutes: updatedDailySpent,
+                            completedDates: updatedCompletedDates,
+                            completedAt: isDone
+                                ? (task.completedAt ?? DateTime.now())
+                                : null,
+                          );
+
+                          // 1. Update in TaskBloc
+                          context.read<TaskBloc>().add(UpdateTaskEvent(updatedTask));
+
+                          // 2. Keep FocusBloc synced with updated task
+                          context.read<FocusBloc>().add(SetActiveTaskEvent(updatedTask));
+
+                          Navigator.of(dialogCtx).pop();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isDone
+                                    ? '🎉 Great job! "${task.title}" marked completed ($currentPercent%).'
+                                    : 'Progress updated to $currentPercent% for "${task.title}".',
+                              ),
+                              backgroundColor: isDone ? AppColors.success : AppColors.surfaceElevated,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Save Progress',
+                          style: AppTypography.buttonMedium.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openFullscreenMode() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const FullscreenTimerScreen(),
       ),
     );
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+    );
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.background,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
   }
 
   @override
@@ -169,11 +881,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18.r, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        automaticallyImplyLeading: false,
         title: Text('Focus Timer', style: AppTypography.heading3),
         actions: [
           IconButton(
@@ -188,7 +896,16 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
       body: SafeArea(
         child: ResponsiveWrapper(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 6.h),
-          child: BlocBuilder<FocusBloc, FocusState>(
+          child: BlocConsumer<FocusBloc, FocusState>(
+            listenWhen: (previous, current) =>
+                previous.status != current.status &&
+                current.status == TimerStatus.completed,
+            listener: (context, state) {
+              if (state.activeTask != null) {
+                // Prompt user to update task progress after every completed session
+                _showTaskProgressSheet(context, state.activeTask!);
+              }
+            },
             builder: (context, state) {
               final modeColor = state.mode.color;
               final isRunning = state.isRunning;
@@ -317,22 +1034,60 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                             ? task.title
                                             : 'Free Focus Session',
                                         style: AppTypography.titleSmall
-                                            .copyWith(color: Colors.white),
+                                            .copyWith(color: AppColors.textPrimary),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       SizedBox(height: 2.h),
                                       Text(
                                         task != null
-                                            ? 'Logged: ${task.spentMinutes}m / ${task.estimatedMinutes}m'
+                                            ? '${(task.progressPercentage * 100).round()}% completed • ${task.spentMinutes}m / ${task.estimatedMinutes}m'
                                             : 'Tap to link a task from your list',
                                         style: AppTypography.caption,
                                       ),
                                     ],
                                   ),
                                 ),
-                                Icon(Icons.arrow_forward_ios_rounded,
-                                    size: 14.r, color: AppColors.textMuted),
+                                 if (task != null) ...[
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => _showTaskProgressSheet(context, task),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.w,
+                                        vertical: 5.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentCyan.withAlpha(30),
+                                        borderRadius: BorderRadius.circular(8.r),
+                                        border: Border.all(
+                                          color: AppColors.accentCyan.withAlpha(90),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.edit_note_rounded,
+                                            size: 14.r,
+                                            color: AppColors.accentCyan,
+                                          ),
+                                          SizedBox(width: 4.w),
+                                          Text(
+                                            'Progress',
+                                            style: AppTypography.captionBold.copyWith(
+                                              color: AppColors.accentCyan,
+                                              fontSize: 10.sp,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ] else
+                                  Icon(Icons.arrow_forward_ios_rounded,
+                                      size: 14.r, color: AppColors.textMuted),
                               ],
                             ),
                           ),
@@ -375,7 +1130,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                               state.formattedTime,
                               style: AppTypography.timerDisplay(
                                 fontSize: 52,
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                             SizedBox(height: 4.h),

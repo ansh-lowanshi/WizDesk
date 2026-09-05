@@ -141,7 +141,7 @@ class ProfileHeroCard extends StatelessWidget {
                         Text(
                           '$totalCompletedTasks',
                           style: AppTypography.heading3.copyWith(
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -174,7 +174,9 @@ class ProfileHeroCard extends StatelessWidget {
                         Text(
                           '${focusHours}h',
                           style: AppTypography.heading3.copyWith(
-                            color: AppColors.accentCyan,
+                            color: AppColors.isDarkMode
+                                ? AppColors.accentCyan
+                                : AppColors.primary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),

@@ -36,8 +36,10 @@ void main() {
 
     expect(find.byType(WizDeskApp), findsOneWidget);
     expect(find.byType(MainNavigationScreen), findsOneWidget);
-    expect(find.text('Tasks'), findsOneWidget);
-    expect(find.text('Focus'), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav_item_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav_item_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav_item_2')), findsOneWidget);
+    expect(find.text('Calendar'), findsOneWidget);
     expect(find.text('Analytics'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
   });

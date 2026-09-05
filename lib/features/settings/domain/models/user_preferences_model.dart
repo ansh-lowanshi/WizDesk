@@ -1,4 +1,5 @@
 import 'app_font_family.dart';
+import 'app_theme_mode.dart';
 
 /// User Preferences and Global Settings Configuration Model
 class UserPreferencesModel {
@@ -16,6 +17,10 @@ class UserPreferencesModel {
 
   // Appearance
   final AppFontFamily fontFamily;
+  final AppThemeMode themeMode;
+
+  // Day Reset & Scheduling (e.g. 2 for 2:00 AM late-night rollover)
+  final int dayResetHour;
 
   // Daily Productivity Goals
   final int dailyTaskGoal;
@@ -31,6 +36,8 @@ class UserPreferencesModel {
     this.autoStartBreaks = false,
     this.autoStartPomodoros = false,
     this.fontFamily = AppFontFamily.plusJakartaSans,
+    this.themeMode = AppThemeMode.dark,
+    this.dayResetHour = 0,
     this.dailyTaskGoal = 5,
     this.dailyFocusMinutesGoal = 120,
   });
@@ -45,6 +52,8 @@ class UserPreferencesModel {
     bool? autoStartBreaks,
     bool? autoStartPomodoros,
     AppFontFamily? fontFamily,
+    AppThemeMode? themeMode,
+    int? dayResetHour,
     int? dailyTaskGoal,
     int? dailyFocusMinutesGoal,
   }) {
@@ -58,6 +67,8 @@ class UserPreferencesModel {
       autoStartBreaks: autoStartBreaks ?? this.autoStartBreaks,
       autoStartPomodoros: autoStartPomodoros ?? this.autoStartPomodoros,
       fontFamily: fontFamily ?? this.fontFamily,
+      themeMode: themeMode ?? this.themeMode,
+      dayResetHour: dayResetHour ?? this.dayResetHour,
       dailyTaskGoal: dailyTaskGoal ?? this.dailyTaskGoal,
       dailyFocusMinutesGoal:
           dailyFocusMinutesGoal ?? this.dailyFocusMinutesGoal,
@@ -75,6 +86,8 @@ class UserPreferencesModel {
       'autoStartBreaks': autoStartBreaks,
       'autoStartPomodoros': autoStartPomodoros,
       'fontFamily': fontFamily.id,
+      'themeMode': themeMode.id,
+      'dayResetHour': dayResetHour,
       'dailyTaskGoal': dailyTaskGoal,
       'dailyFocusMinutesGoal': dailyFocusMinutesGoal,
     };
@@ -92,6 +105,8 @@ class UserPreferencesModel {
       autoStartBreaks: (map['autoStartBreaks'] as bool?) ?? false,
       autoStartPomodoros: (map['autoStartPomodoros'] as bool?) ?? false,
       fontFamily: AppFontFamily.fromId(map['fontFamily'] as String?),
+      themeMode: AppThemeMode.fromId(map['themeMode'] as String?),
+      dayResetHour: (map['dayResetHour'] as int?) ?? 0,
       dailyTaskGoal: (map['dailyTaskGoal'] as int?) ?? 5,
       dailyFocusMinutesGoal: (map['dailyFocusMinutesGoal'] as int?) ?? 120,
     );

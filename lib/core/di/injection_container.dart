@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
+import '../theme/bloc/theme_bloc.dart';
 import '../../features/analytics/presentation/bloc/analytics_bloc.dart';
 import '../../features/focus/domain/services/timer_ticker.dart';
 import '../../features/focus/presentation/bloc/focus_bloc.dart';
@@ -16,7 +17,9 @@ import '../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../features/tasks/data/datasources/task_local_datasource.dart';
 import '../../features/tasks/data/repositories/task_repository_impl.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
+import '../../features/tasks/domain/usecases/add_category_usecase.dart';
 import '../../features/tasks/domain/usecases/add_task_usecase.dart';
+import '../../features/tasks/domain/usecases/delete_category_usecase.dart';
 import '../../features/tasks/domain/usecases/delete_task_usecase.dart';
 import '../../features/tasks/domain/usecases/get_categories_usecase.dart';
 import '../../features/tasks/domain/usecases/get_focus_sessions_usecase.dart';
@@ -104,6 +107,12 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
   if (!sl.isRegistered<GetCategoriesUseCase>()) {
     sl.registerLazySingleton(() => GetCategoriesUseCase(sl<TaskRepository>()));
   }
+  if (!sl.isRegistered<AddCategoryUseCase>()) {
+    sl.registerLazySingleton(() => AddCategoryUseCase(sl<TaskRepository>()));
+  }
+  if (!sl.isRegistered<DeleteCategoryUseCase>()) {
+    sl.registerLazySingleton(() => DeleteCategoryUseCase(sl<TaskRepository>()));
+  }
   if (!sl.isRegistered<LogFocusSessionUseCase>()) {
     sl.registerLazySingleton(() => LogFocusSessionUseCase(sl<TaskRepository>()));
   }
@@ -146,6 +155,8 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
         updateTaskUseCase: sl<UpdateTaskUseCase>(),
         deleteTaskUseCase: sl<DeleteTaskUseCase>(),
         getCategoriesUseCase: sl<GetCategoriesUseCase>(),
+        addCategoryUseCase: sl<AddCategoryUseCase>(),
+        deleteCategoryUseCase: sl<DeleteCategoryUseCase>(),
       ),
     );
   }
@@ -168,6 +179,12 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
         resetSettingsUseCase: sl<ResetSettingsUseCase>(),
         clearAllDataUseCase: sl<ClearAllDataUseCase>(),
       ),
+    );
+  }
+
+  if (!sl.isRegistered<ThemeBloc>()) {
+    sl.registerFactory(
+      () => ThemeBloc(settingsRepository: sl<SettingsRepository>()),
     );
   }
 }

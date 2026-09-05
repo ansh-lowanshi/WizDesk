@@ -81,7 +81,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20.r),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: EdgeInsets.all(20.r),
@@ -106,7 +106,8 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
               // Category Name Input
               TextField(
                 controller: _nameController,
-                style: AppTypography.bodyLarge.copyWith(color: Colors.white),
+                style: AppTypography.bodyLarge
+                    .copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'Category Name',
                   hintText: 'e.g. Finance, Reading, Project X',
@@ -198,7 +199,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
+                        side: BorderSide(color: AppColors.border),
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),

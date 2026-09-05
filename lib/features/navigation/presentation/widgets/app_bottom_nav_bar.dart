@@ -18,24 +18,27 @@ class NavItem {
   });
 }
 
-/// Ultra-Modern Glassmorphic Floating Bottom Navigation Bar
+/// Ultra-Modern Docked Bottom Navigation Bar connected to screen bottom
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
-  final VoidCallback onQuickAdd;
 
   const AppBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTabSelected,
-    required this.onQuickAdd,
   });
 
   static const List<NavItem> _items = [
     NavItem(
-      icon: Icons.checklist_rounded,
-      activeIcon: Icons.checklist_rounded,
-      label: 'Tasks',
+      icon: Icons.today_outlined,
+      activeIcon: Icons.today_rounded,
+      label: 'Today',
+    ),
+    NavItem(
+      icon: Icons.calendar_month_outlined,
+      activeIcon: Icons.calendar_month_rounded,
+      label: 'Calendar',
     ),
     NavItem(
       icon: Icons.timer_outlined,
@@ -43,7 +46,7 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Focus',
     ),
     NavItem(
-      icon: Icons.insights_rounded,
+      icon: Icons.insights_outlined,
       activeIcon: Icons.insights_rounded,
       label: 'Analytics',
     ),
@@ -56,50 +59,61 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
-        child: SizedBox(
-          height: 64.h,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24.r),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated.withAlpha(220),
-                  borderRadius: BorderRadius.circular(24.r),
-                  border: Border.all(
-                    color: AppColors.borderLight.withAlpha(80),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(120),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+    final activeColor =
+        AppColors.isDarkMode ? AppColors.accentCyan : AppColors.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.isDarkMode
+                ? Colors.black.withAlpha(140)
+                : Colors.black.withAlpha(25),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated.withAlpha(
+                AppColors.isDarkMode ? 230 : 245,
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.border.withAlpha(AppColors.isDarkMode ? 100 : 180),
+                  width: 1.2,
                 ),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                height: 62.h,
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    // Tab 0: Tasks
-                    Expanded(child: _buildNavItem(0)),
+                    // Tab 0: Today
+                    Expanded(child: _buildNavItem(0, activeColor)),
 
-                    // Tab 1: Focus
-                    Expanded(child: _buildNavItem(1)),
+                    // Tab 1: Calendar
+                    Expanded(child: _buildNavItem(1, activeColor)),
 
-                    // Center Quick Add Button (FAB)
-                    _buildQuickAddButton(),
+                    // Tab 2: Focus (Elevated Center Glowing Button)
+                    _buildCenterFocusButton(),
 
-                    // Tab 2: Analytics
-                    Expanded(child: _buildNavItem(2)),
+                    // Tab 3: Analytics
+                    Expanded(child: _buildNavItem(3, activeColor)),
 
-                    // Tab 3: Settings
-                    Expanded(child: _buildNavItem(3)),
+                    // Tab 4: Settings
+                    Expanded(child: _buildNavItem(4, activeColor)),
                   ],
                 ),
               ),
@@ -110,89 +124,149 @@ class AppBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index) {
+  Widget _buildNavItem(int index, Color activeColor) {
     final item = _items[index];
     final isSelected = currentIndex == index;
+    final activeTextColor =
+        AppColors.isDarkMode ? Colors.white : AppColors.primary;
 
     return InkWell(
       key: ValueKey('nav_item_$index'),
       onTap: () => onTabSelected(index),
-      borderRadius: BorderRadius.circular(16.r),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? 8.w : 4.w,
-            vertical: 4.h,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withAlpha(40)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(14.r),
-            border: isSelected
-                ? Border.all(
-                    color: AppColors.accentCyan.withAlpha(120), width: 1)
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Top indicator bar when selected
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              width: isSelected ? 18.w : 0,
+              height: 3.h,
+              margin: EdgeInsets.only(bottom: 4.h),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(2.r),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: activeColor.withAlpha(160),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+
+            // Icon + Animated pill background
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(
+                horizontal: isSelected ? 12.w : 6.w,
+                vertical: 3.h,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withAlpha(28)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
                 isSelected ? item.activeIcon : item.icon,
-                size: 20.r,
-                color: isSelected ? AppColors.accentCyan : AppColors.textMuted,
+                size: 21.r,
+                color: isSelected
+                    ? activeColor
+                    : AppColors.textMuted.withAlpha(180),
               ),
-              SizedBox(height: 2.h),
-              Text(
-                item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.caption.copyWith(
-                  fontSize: 9.5.sp,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? Colors.white
-                      : AppColors.textMuted.withAlpha(180),
-                ),
+            ),
+
+            SizedBox(height: 2.h),
+
+            // Label
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption.copyWith(
+                fontSize: 10.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? activeTextColor
+                    : AppColors.textMuted.withAlpha(180),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildQuickAddButton() {
-    return InkWell(
-      key: const ValueKey('nav_quick_add_btn'),
-      onTap: onQuickAdd,
-      borderRadius: BorderRadius.circular(20.r),
-      child: GlowContainer(
-        glowColor: AppColors.accentCyan,
-        blurRadius: 14,
-        spreadRadius: 0,
-        borderRadius: 20,
-        child: Container(
-          width: 44.r,
-          height: 44.r,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(18.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withAlpha(120),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+  Widget _buildCenterFocusButton() {
+    final isSelected = currentIndex == 2;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      child: InkWell(
+        key: const ValueKey('nav_item_2'),
+        onTap: () => onTabSelected(2),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GlowContainer(
+              glowColor: isSelected ? AppColors.accentCyan : AppColors.primary,
+              blurRadius: isSelected ? 14 : 8,
+              spreadRadius: 0,
+              borderRadius: 16,
+              child: Container(
+                width: 42.r,
+                height: 42.r,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(15.r),
+                  border: Border.all(
+                    color: isSelected
+                        ? (AppColors.isDarkMode
+                            ? AppColors.accentCyan
+                            : Colors.white)
+                        : Colors.white.withAlpha(50),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isSelected ? AppColors.accentCyan : AppColors.primary)
+                          .withAlpha(120),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  isSelected ? Icons.timer_rounded : Icons.timer_outlined,
+                  size: 22.r,
+                  color: Colors.white,
+                ),
               ),
-            ],
-          ),
-          child: Icon(
-            Icons.add_rounded,
-            size: 26.r,
-            color: Colors.white,
-          ),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'Focus',
+              style: AppTypography.caption.copyWith(
+                fontSize: 10.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? (AppColors.isDarkMode
+                        ? AppColors.accentCyan
+                        : AppColors.primary)
+                    : AppColors.textMuted.withAlpha(180),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -71,7 +71,7 @@ class AppTypography {
   static TextStyle _style({
     required double fontSize,
     required FontWeight fontWeight,
-    Color color = AppColors.textPrimary,
+    Color? color,
     double? height,
     double? letterSpacing,
     TextDecoration? decoration,
@@ -79,7 +79,7 @@ class AppTypography {
     return primaryFontBuilder(
       fontSize: fontSize.sp,
       fontWeight: fontWeight,
-      color: color,
+      color: color ?? AppColors.textPrimary,
       height: height,
       letterSpacing: letterSpacing,
       decoration: decoration,
@@ -108,7 +108,7 @@ class AppTypography {
 
   static TextStyle get heading2 => _style(
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
       );
 
@@ -117,9 +117,14 @@ class AppTypography {
         fontWeight: FontWeight.w600,
       );
 
-  // Subtitles & Section Titles
-  static TextStyle get titleMedium => _style(
+  // Section Headers & Card Titles
+  static TextStyle get titleLarge => _style(
         fontSize: 16,
+        fontWeight: FontWeight.w600,
+      );
+
+  static TextStyle get titleMedium => _style(
+        fontSize: 15,
         fontWeight: FontWeight.w600,
       );
 
@@ -128,32 +133,36 @@ class AppTypography {
         fontWeight: FontWeight.w600,
       );
 
-  // Body text
+  // Body Content
   static TextStyle get bodyLarge => _style(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: AppColors.textSecondary,
-        height: 1.4,
       );
 
   static TextStyle get bodyMedium => _style(
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: FontWeight.w400,
         color: AppColors.textSecondary,
-        height: 1.4,
       );
 
   static TextStyle get bodySmall => _style(
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w400,
         color: AppColors.textMuted,
-        height: 1.3,
       );
 
-  // Captions & Badges
+  // Captions & Microcopy
   static TextStyle get caption => _style(
         fontSize: 11,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textMuted,
+        letterSpacing: 0.2,
+      );
+
+  static TextStyle get captionBold => _style(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
         color: AppColors.textMuted,
         letterSpacing: 0.2,
       );
@@ -178,15 +187,21 @@ class AppTypography {
         color: Colors.white,
       );
 
+  static TextStyle get buttonSmall => _style(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      );
+
   // Pomodoro Focus Timer Display Digits
   static TextStyle timerDisplay({
     double fontSize = 48,
-    Color color = AppColors.textPrimary,
+    Color? color,
   }) {
     return timerFontBuilder(
       fontSize: fontSize.sp,
       fontWeight: FontWeight.w700,
-      color: color,
+      color: color ?? AppColors.textPrimary,
       letterSpacing: -1.0,
     );
   }

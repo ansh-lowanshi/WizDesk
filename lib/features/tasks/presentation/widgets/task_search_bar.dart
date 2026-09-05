@@ -45,7 +45,7 @@ class _TaskSearchBarState extends State<TaskSearchBar> {
       child: TextField(
         controller: _controller,
         onChanged: widget.onSearchChanged,
-        style: AppTypography.bodyLarge.copyWith(color: Colors.white),
+        style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           filled: false,
           hintText: 'Search tasks by title or tag...',

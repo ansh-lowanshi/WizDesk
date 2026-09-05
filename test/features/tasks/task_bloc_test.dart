@@ -4,7 +4,9 @@ import 'package:wizdesk/features/tasks/domain/entities/task_category_entity.dart
 import 'package:wizdesk/features/tasks/domain/entities/task_entity.dart';
 import 'package:wizdesk/features/tasks/domain/entities/task_enums.dart';
 import 'package:wizdesk/features/tasks/domain/repositories/task_repository.dart';
+import 'package:wizdesk/features/tasks/domain/usecases/add_category_usecase.dart';
 import 'package:wizdesk/features/tasks/domain/usecases/add_task_usecase.dart';
+import 'package:wizdesk/features/tasks/domain/usecases/delete_category_usecase.dart';
 import 'package:wizdesk/features/tasks/domain/usecases/delete_task_usecase.dart';
 import 'package:wizdesk/features/tasks/domain/usecases/get_categories_usecase.dart';
 import 'package:wizdesk/features/tasks/domain/usecases/get_tasks_usecase.dart';
@@ -130,6 +132,8 @@ void main() {
       updateTaskUseCase: UpdateTaskUseCase(repository),
       deleteTaskUseCase: DeleteTaskUseCase(repository),
       getCategoriesUseCase: GetCategoriesUseCase(repository),
+      addCategoryUseCase: AddCategoryUseCase(repository),
+      deleteCategoryUseCase: DeleteCategoryUseCase(repository),
     );
   });
 
@@ -204,6 +208,40 @@ void main() {
         final toggled = state.allTasks.firstWhere((t) => t.id == '2');
         expect(toggled.status, TaskStatus.completed);
         expect(state.completedTasksCount, 1);
+        return true;
+      })),
+    );
+  });
+
+  test('AddCategoryEvent and DeleteCategoryEvent should add and remove categories', () async {
+    taskBloc.add(const LoadTasksEvent());
+    await taskBloc.stream.firstWhere((s) => s is TaskLoaded);
+
+    final newCategory = const TaskCategoryEntity(
+      id: 'cat_fitness',
+      name: 'Fitness',
+      iconCode: 0xe294,
+      colorValue: 0xFF10B981,
+    );
+
+    // 1. Add Category
+    taskBloc.add(AddCategoryEvent(newCategory));
+    await expectLater(
+      taskBloc.stream,
+      emits(predicate<TaskLoaded>((state) {
+        expect(state.categories.length, 2);
+        expect(state.categories.any((c) => c.id == 'cat_fitness'), isTrue);
+        return true;
+      })),
+    );
+
+    // 2. Delete Category
+    taskBloc.add(const DeleteCategoryEvent('cat_fitness'));
+    await expectLater(
+      taskBloc.stream,
+      emits(predicate<TaskLoaded>((state) {
+        expect(state.categories.length, 1);
+        expect(state.categories.any((c) => c.id == 'cat_fitness'), isFalse);
         return true;
       })),
     );

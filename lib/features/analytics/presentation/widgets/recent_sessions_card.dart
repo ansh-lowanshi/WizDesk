@@ -98,7 +98,7 @@ class RecentSessionsCard extends StatelessWidget {
                             Text(
                               isWork ? 'Deep Focus Session' : 'Rest Break',
                               style: AppTypography.titleSmall.copyWith(
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

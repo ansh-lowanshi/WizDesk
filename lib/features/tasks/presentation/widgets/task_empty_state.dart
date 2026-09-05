@@ -44,7 +44,7 @@ class TaskEmptyState extends StatelessWidget {
             SizedBox(height: 20.h),
             Text(
               title,
-              style: AppTypography.heading3.copyWith(color: Colors.white),
+              style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8.h),

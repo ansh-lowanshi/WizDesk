@@ -70,7 +70,7 @@ class TimerSettingsSection extends StatelessWidget {
             },
           ),
 
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: AppColors.divider, height: 24),
 
           // 2. Short Break Duration Slider
           _buildDurationSlider(
@@ -86,7 +86,7 @@ class TimerSettingsSection extends StatelessWidget {
             },
           ),
 
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: AppColors.divider, height: 24),
 
           // 3. Long Break Duration Slider
           _buildDurationSlider(
@@ -102,7 +102,7 @@ class TimerSettingsSection extends StatelessWidget {
             },
           ),
 
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: AppColors.divider, height: 24),
 
           // 4. Long Break Interval (Cycles)
           Row(
@@ -153,7 +153,7 @@ class TimerSettingsSection extends StatelessWidget {
             ],
           ),
 
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: AppColors.divider, height: 24),
 
           // 5. Auto-start Breaks Toggle
           _buildSwitchRow(

@@ -67,7 +67,7 @@ class ProductivityScoreBanner extends StatelessWidget {
                     Text(
                       '$score',
                       style: AppTypography.heading2.copyWith(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -98,7 +98,7 @@ class ProductivityScoreBanner extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.titleMedium.copyWith(
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
