@@ -51,7 +51,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     LoadTasksEvent event,
     Emitter<TaskState> emit,
   ) async {
-    emit(const TaskLoading());
+    if (!event.isSilent && state is! TaskLoaded) {
+      emit(const TaskLoading());
+    }
     try {
       final loadedTasks = await getTasksUseCase(const NoParams());
       final categories = await getCategoriesUseCase(const NoParams());
@@ -62,7 +64,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       final tasks = <TaskEntity>[];
       for (final task in loadedTasks) {
         final spentToday = task.getSpentMinutesFor(now);
-        final isOverDueEstimated = task.estimatedMinutes > 0 &&
+        final isOverDueEstimated =
+            task.estimatedMinutes > 0 &&
             (task.spentMinutes >= task.estimatedMinutes ||
                 spentToday >= task.estimatedMinutes);
         if (isOverDueEstimated &&
@@ -72,8 +75,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           if (!updatedCompletedDates.contains(dateKey)) {
             updatedCompletedDates.add(dateKey);
           }
-          final updatedDailyProgress =
-              Map<String, int>.from(task.dailyProgress);
+          final updatedDailyProgress = Map<String, int>.from(
+            task.dailyProgress,
+          );
           updatedDailyProgress[dateKey] = 100;
 
           final healedTask = task.copyWith(
@@ -99,22 +103,25 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         searchQuery: '',
       );
 
-      emit(TaskLoaded(
-        allTasks: tasks,
-        filteredTasks: filtered,
-        categories: categories,
-        dateFilter: TaskDateFilter.today,
-      ));
+      emit(
+        TaskLoaded(
+          allTasks: tasks,
+          filteredTasks: filtered,
+          categories: categories,
+          dateFilter: TaskDateFilter.today,
+        ),
+      );
     } catch (e) {
       emit(TaskError('Failed to load tasks: $e'));
+    } finally {
+      if (event.completer != null && !event.completer!.isCompleted) {
+        event.completer!.complete();
+      }
     }
   }
 
   /// Add new task
-  Future<void> _onAddTask(
-    AddTaskEvent event,
-    Emitter<TaskState> emit,
-  ) async {
+  Future<void> _onAddTask(AddTaskEvent event, Emitter<TaskState> emit) async {
     try {
       await addTaskUseCase(event.task);
       if (state is TaskLoaded) {
@@ -129,10 +136,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           searchQuery: current.searchQuery,
         );
 
-        emit(current.copyWith(
-          allTasks: updatedAll,
-          filteredTasks: updatedFiltered,
-        ));
+        emit(
+          current.copyWith(
+            allTasks: updatedAll,
+            filteredTasks: updatedFiltered,
+          ),
+        );
       } else {
         add(const LoadTasksEvent());
       }
@@ -163,10 +172,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           searchQuery: current.searchQuery,
         );
 
-        emit(current.copyWith(
-          allTasks: updatedAll,
-          filteredTasks: updatedFiltered,
-        ));
+        emit(
+          current.copyWith(
+            allTasks: updatedAll,
+            filteredTasks: updatedFiltered,
+          ),
+        );
       }
     } catch (e) {
       emit(TaskError('Failed to update task: $e'));
@@ -182,8 +193,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       await deleteTaskUseCase(event.taskId);
       if (state is TaskLoaded) {
         final current = state as TaskLoaded;
-        final updatedAll =
-            current.allTasks.where((t) => t.id != event.taskId).toList();
+        final updatedAll = current.allTasks
+            .where((t) => t.id != event.taskId)
+            .toList();
 
         final updatedFiltered = _computeFilteredTasks(
           allTasks: updatedAll,
@@ -194,10 +206,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           searchQuery: current.searchQuery,
         );
 
-        emit(current.copyWith(
-          allTasks: updatedAll,
-          filteredTasks: updatedFiltered,
-        ));
+        emit(
+          current.copyWith(
+            allTasks: updatedAll,
+            filteredTasks: updatedFiltered,
+          ),
+        );
       }
     } catch (e) {
       emit(TaskError('Failed to delete task: $e'));
@@ -231,17 +245,20 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
       final bool isNowCompletedOnDate = !wasCompletedOnDate;
       final now = DateTime.now();
-      final isToday = targetDate.year == now.year &&
+      final isToday =
+          targetDate.year == now.year &&
           targetDate.month == now.month &&
           targetDate.day == now.day;
 
       TaskStatus newStatus = task.status;
       if (task.frequency == TaskFrequency.once) {
-        newStatus =
-            isNowCompletedOnDate ? TaskStatus.completed : TaskStatus.todo;
+        newStatus = isNowCompletedOnDate
+            ? TaskStatus.completed
+            : TaskStatus.todo;
       } else if (isToday) {
-        newStatus =
-            isNowCompletedOnDate ? TaskStatus.completed : TaskStatus.todo;
+        newStatus = isNowCompletedOnDate
+            ? TaskStatus.completed
+            : TaskStatus.todo;
       }
 
       final updatedTask = task.copyWith(
@@ -265,10 +282,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         searchQuery: current.searchQuery,
       );
 
-      emit(current.copyWith(
-        allTasks: updatedAll,
-        filteredTasks: updatedFiltered,
-      ));
+      emit(
+        current.copyWith(allTasks: updatedAll, filteredTasks: updatedFiltered),
+      );
     } catch (e) {
       emit(TaskError('Failed to toggle task: $e'));
     }
@@ -286,7 +302,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       final task = current.allTasks.firstWhere((t) => t.id == event.taskId);
       final updatedTask = task.copyWith(
         status: event.status,
-        completedAt: event.status == TaskStatus.completed ? DateTime.now() : null,
+        completedAt: event.status == TaskStatus.completed
+            ? DateTime.now()
+            : null,
       );
 
       await updateTaskUseCase(updatedTask);
@@ -304,20 +322,16 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         searchQuery: current.searchQuery,
       );
 
-      emit(current.copyWith(
-        allTasks: updatedAll,
-        filteredTasks: updatedFiltered,
-      ));
+      emit(
+        current.copyWith(allTasks: updatedAll, filteredTasks: updatedFiltered),
+      );
     } catch (e) {
       emit(TaskError('Failed to update status: $e'));
     }
   }
 
   /// Filter by Status Tab
-  void _onFilterByStatus(
-    FilterByStatusEvent event,
-    Emitter<TaskState> emit,
-  ) {
+  void _onFilterByStatus(FilterByStatusEvent event, Emitter<TaskState> emit) {
     if (state is! TaskLoaded) return;
     final current = state as TaskLoaded;
 
@@ -330,10 +344,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       searchQuery: current.searchQuery,
     );
 
-    emit(current.copyWith(
-      statusFilter: event.statusFilter,
-      filteredTasks: filtered,
-    ));
+    emit(
+      current.copyWith(
+        statusFilter: event.statusFilter,
+        filteredTasks: filtered,
+      ),
+    );
   }
 
   /// Filter by Category
@@ -353,10 +369,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       searchQuery: current.searchQuery,
     );
 
-    emit(current.copyWith(
-      categoryFilterId: () => event.categoryId,
-      filteredTasks: filtered,
-    ));
+    emit(
+      current.copyWith(
+        categoryFilterId: () => event.categoryId,
+        filteredTasks: filtered,
+      ),
+    );
   }
 
   /// Filter by Priority
@@ -376,17 +394,16 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       searchQuery: current.searchQuery,
     );
 
-    emit(current.copyWith(
-      priorityFilter: () => event.priority,
-      filteredTasks: filtered,
-    ));
+    emit(
+      current.copyWith(
+        priorityFilter: () => event.priority,
+        filteredTasks: filtered,
+      ),
+    );
   }
 
   /// Filter by Date
-  void _onFilterByDate(
-    FilterByDateEvent event,
-    Emitter<TaskState> emit,
-  ) {
+  void _onFilterByDate(FilterByDateEvent event, Emitter<TaskState> emit) {
     if (state is! TaskLoaded) return;
     final current = state as TaskLoaded;
 
@@ -399,17 +416,13 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       searchQuery: current.searchQuery,
     );
 
-    emit(current.copyWith(
-      dateFilter: event.dateFilter,
-      filteredTasks: filtered,
-    ));
+    emit(
+      current.copyWith(dateFilter: event.dateFilter, filteredTasks: filtered),
+    );
   }
 
   /// Search tasks by keyword
-  void _onSearchTasks(
-    SearchTasksEvent event,
-    Emitter<TaskState> emit,
-  ) {
+  void _onSearchTasks(SearchTasksEvent event, Emitter<TaskState> emit) {
     if (state is! TaskLoaded) return;
     final current = state as TaskLoaded;
 
@@ -422,10 +435,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       searchQuery: event.query,
     );
 
-    emit(current.copyWith(
-      searchQuery: event.query,
-      filteredTasks: filtered,
-    ));
+    emit(current.copyWith(searchQuery: event.query, filteredTasks: filtered));
   }
 
   /// Add custom category
@@ -463,10 +473,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           .where((cat) => cat.id != event.categoryId)
           .toList();
 
-      final updatedCategoryFilter =
-          current.categoryFilterId == event.categoryId
-              ? null
-              : current.categoryFilterId;
+      final updatedCategoryFilter = current.categoryFilterId == event.categoryId
+          ? null
+          : current.categoryFilterId;
 
       final filtered = _computeFilteredTasks(
         allTasks: current.allTasks,
@@ -477,11 +486,13 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         searchQuery: current.searchQuery,
       );
 
-      emit(current.copyWith(
-        categories: updatedCategories,
-        categoryFilterId: () => updatedCategoryFilter,
-        filteredTasks: filtered,
-      ));
+      emit(
+        current.copyWith(
+          categories: updatedCategories,
+          categoryFilterId: () => updatedCategoryFilter,
+          filteredTasks: filtered,
+        ),
+      );
     } catch (e) {
       emit(TaskError('Failed to delete category: $e'));
     }

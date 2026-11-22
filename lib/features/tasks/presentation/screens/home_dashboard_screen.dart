@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -295,12 +296,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   color: AppColors.accentCyan,
                   backgroundColor: AppColors.surfaceElevated,
                   onRefresh: () async {
-                    context.read<TaskBloc>().add(const LoadTasksEvent());
+                    final completer = Completer<void>();
+                    context.read<TaskBloc>().add(
+                      LoadTasksEvent(isSilent: true, completer: completer),
+                    );
+                    await Future.wait([
+                      completer.future,
+                      Future.delayed(const Duration(milliseconds: 600)),
+                    ]);
                   },
                   child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
+                    physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
                       // Sliver Header
                       SliverToBoxAdapter(
@@ -698,12 +704,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
                       // Task List or Empty State
                       if (state.filteredTasks.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
+                        SliverToBoxAdapter(
                           child: TaskEmptyState(
                             title: context.l10n.noTasksTitle,
                             subtitle: context.l10n.noTasksSubtitle,
-                            actionLabel: '+ ${context.l10n.addTask}',
+                            actionLabel: context.l10n.addTask,
                             onActionTap: _openAddTaskScreen,
                           ),
                         )

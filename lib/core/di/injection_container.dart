@@ -50,23 +50,42 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     final taskBox = await Hive.openBox(AppConstants.taskBoxName);
     final categoryBox = await Hive.openBox(AppConstants.categoryBoxName);
     final sessionBox = await Hive.openBox(AppConstants.sessionBoxName);
-    final preferencesBox = await Hive.openBox(AppConstants.userPreferencesBoxName);
+    final preferencesBox = await Hive.openBox(
+      AppConstants.userPreferencesBoxName,
+    );
     final noteBox = await Hive.openBox(AppConstants.noteBoxName);
 
     if (!sl.isRegistered<Box>(instanceName: AppConstants.taskBoxName)) {
-      sl.registerLazySingleton<Box>(() => taskBox, instanceName: AppConstants.taskBoxName);
+      sl.registerLazySingleton<Box>(
+        () => taskBox,
+        instanceName: AppConstants.taskBoxName,
+      );
     }
     if (!sl.isRegistered<Box>(instanceName: AppConstants.categoryBoxName)) {
-      sl.registerLazySingleton<Box>(() => categoryBox, instanceName: AppConstants.categoryBoxName);
+      sl.registerLazySingleton<Box>(
+        () => categoryBox,
+        instanceName: AppConstants.categoryBoxName,
+      );
     }
     if (!sl.isRegistered<Box>(instanceName: AppConstants.sessionBoxName)) {
-      sl.registerLazySingleton<Box>(() => sessionBox, instanceName: AppConstants.sessionBoxName);
+      sl.registerLazySingleton<Box>(
+        () => sessionBox,
+        instanceName: AppConstants.sessionBoxName,
+      );
     }
-    if (!sl.isRegistered<Box>(instanceName: AppConstants.userPreferencesBoxName)) {
-      sl.registerLazySingleton<Box>(() => preferencesBox, instanceName: AppConstants.userPreferencesBoxName);
+    if (!sl.isRegistered<Box>(
+      instanceName: AppConstants.userPreferencesBoxName,
+    )) {
+      sl.registerLazySingleton<Box>(
+        () => preferencesBox,
+        instanceName: AppConstants.userPreferencesBoxName,
+      );
     }
     if (!sl.isRegistered<Box>(instanceName: AppConstants.noteBoxName)) {
-      sl.registerLazySingleton<Box>(() => noteBox, instanceName: AppConstants.noteBoxName);
+      sl.registerLazySingleton<Box>(
+        () => noteBox,
+        instanceName: AppConstants.noteBoxName,
+      );
     }
   }
 
@@ -82,7 +101,7 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
       categoriesBox: sl<Box>(instanceName: AppConstants.categoryBoxName),
       sessionsBox: sl<Box>(instanceName: AppConstants.sessionBoxName),
     );
-    // Seed sample data if empty
+    // Seed default categories and clean up legacy starter tasks if empty
     await taskLocalDataSource.seedInitialDataIfEmpty();
     sl.registerLazySingleton<TaskLocalDataSource>(() => taskLocalDataSource);
   }
@@ -109,9 +128,11 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     sl.registerLazySingleton<SettingsRepository>(
       () => SettingsRepositoryImpl(
         preferencesBox:
-            sl.isRegistered<Box>(instanceName: AppConstants.userPreferencesBoxName)
-                ? sl<Box>(instanceName: AppConstants.userPreferencesBoxName)
-                : null,
+            sl.isRegistered<Box>(
+              instanceName: AppConstants.userPreferencesBoxName,
+            )
+            ? sl<Box>(instanceName: AppConstants.userPreferencesBoxName)
+            : null,
         taskLocalDataSource: sl<TaskLocalDataSource>(),
         noteLocalDataSource: sl<NoteLocalDataSource>(),
       ),
@@ -141,22 +162,34 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     sl.registerLazySingleton(() => DeleteCategoryUseCase(sl<TaskRepository>()));
   }
   if (!sl.isRegistered<LogFocusSessionUseCase>()) {
-    sl.registerLazySingleton(() => LogFocusSessionUseCase(sl<TaskRepository>()));
+    sl.registerLazySingleton(
+      () => LogFocusSessionUseCase(sl<TaskRepository>()),
+    );
   }
   if (!sl.isRegistered<GetFocusSessionsUseCase>()) {
-    sl.registerLazySingleton(() => GetFocusSessionsUseCase(sl<TaskRepository>()));
+    sl.registerLazySingleton(
+      () => GetFocusSessionsUseCase(sl<TaskRepository>()),
+    );
   }
   if (!sl.isRegistered<GetSettingsUseCase>()) {
-    sl.registerLazySingleton(() => GetSettingsUseCase(sl<SettingsRepository>()));
+    sl.registerLazySingleton(
+      () => GetSettingsUseCase(sl<SettingsRepository>()),
+    );
   }
   if (!sl.isRegistered<SaveSettingsUseCase>()) {
-    sl.registerLazySingleton(() => SaveSettingsUseCase(sl<SettingsRepository>()));
+    sl.registerLazySingleton(
+      () => SaveSettingsUseCase(sl<SettingsRepository>()),
+    );
   }
   if (!sl.isRegistered<ResetSettingsUseCase>()) {
-    sl.registerLazySingleton(() => ResetSettingsUseCase(sl<SettingsRepository>()));
+    sl.registerLazySingleton(
+      () => ResetSettingsUseCase(sl<SettingsRepository>()),
+    );
   }
   if (!sl.isRegistered<ClearAllDataUseCase>()) {
-    sl.registerLazySingleton(() => ClearAllDataUseCase(sl<SettingsRepository>()));
+    sl.registerLazySingleton(
+      () => ClearAllDataUseCase(sl<SettingsRepository>()),
+    );
   }
   if (!sl.isRegistered<GetNotesUseCase>()) {
     sl.registerLazySingleton(() => GetNotesUseCase(sl<NoteRepository>()));
@@ -171,7 +204,9 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     sl.registerLazySingleton(() => DeleteNoteUseCase(sl<NoteRepository>()));
   }
   if (!sl.isRegistered<GetNotesForTaskUseCase>()) {
-    sl.registerLazySingleton(() => GetNotesForTaskUseCase(sl<NoteRepository>()));
+    sl.registerLazySingleton(
+      () => GetNotesForTaskUseCase(sl<NoteRepository>()),
+    );
   }
 
   // 5. Presentation Layer (BLoCs & Services)
@@ -247,4 +282,3 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     );
   }
 }
-

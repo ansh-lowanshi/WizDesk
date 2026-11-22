@@ -73,15 +73,20 @@ class DataManagementSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.restart_alt_rounded,
-                      size: 20.r, color: AppColors.textPrimary),
+                  Icon(
+                    Icons.restart_alt_rounded,
+                    size: 20.r,
+                    color: AppColors.textPrimary,
+                  ),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l10n.resetSettingsDefaults,
-                            style: AppTypography.titleSmall),
+                        Text(
+                          l10n.resetSettingsDefaults,
+                          style: AppTypography.titleSmall,
+                        ),
                         Text(
                           l10n.restoreDefaultsSubtitle,
                           style: AppTypography.caption,
@@ -89,8 +94,11 @@ class DataManagementSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 20.r, color: AppColors.textMuted),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20.r,
+                    color: AppColors.textMuted,
+                  ),
                 ],
               ),
             ),
@@ -111,8 +119,11 @@ class DataManagementSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.delete_forever_rounded,
-                      size: 20.r, color: AppColors.error),
+                  Icon(
+                    Icons.delete_forever_rounded,
+                    size: 20.r,
+                    color: AppColors.error,
+                  ),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
@@ -134,8 +145,11 @@ class DataManagementSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 20.r, color: AppColors.error),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20.r,
+                    color: AppColors.error,
+                  ),
                 ],
               ),
             ),
@@ -150,8 +164,9 @@ class DataManagementSection extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.r),
+        ),
         title: Text('Reset Settings?', style: AppTypography.heading3),
         content: Text(
           'This will reset your Pomodoro timers, typography, and goals back to defaults. Your tasks will not be deleted.',
@@ -160,14 +175,15 @@ class DataManagementSection extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel',
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textMuted)),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: () {
               Navigator.of(ctx).pop();
               onResetSettings();
@@ -184,31 +200,36 @@ class DataManagementSection extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.r),
+        ),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded,
-                color: AppColors.error, size: 24.r),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.error,
+              size: 24.r,
+            ),
             SizedBox(width: 8.w),
             Text('Wipe All Data?', style: AppTypography.heading3),
           ],
         ),
         content: Text(
-          'This action cannot be undone. All tasks, categories, and focus logs will be completely erased and reset with sample templates.',
+          'This action cannot be undone. All tasks, categories, and focus logs will be completely erased.',
           style: AppTypography.bodySmall,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel',
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textMuted)),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.of(ctx).pop();
               onClearAllData();

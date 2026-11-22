@@ -15,54 +15,58 @@ class TaskEmptyState extends StatelessWidget {
   const TaskEmptyState({
     super.key,
     this.title = 'No Tasks Found',
-    this.subtitle = 'Everything looks clear! Create a task or switch your active filters.',
+    this.subtitle =
+        'Everything looks clear! Create a task or switch your active filters.',
     this.icon = Icons.check_circle_outline_rounded,
     this.onActionTap,
-    this.actionLabel = '+ Add New Task',
+    this.actionLabel = 'Add New Task',
   });
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             GlowContainer(
               isCircle: true,
-              padding: EdgeInsets.all(24.r),
+              padding: EdgeInsets.all(18.r),
               glowColor: AppColors.accentCyan,
-              blurRadius: 28,
+              blurRadius: 24,
               backgroundColor: AppColors.surfaceElevated,
-              child: Icon(
-                icon,
-                size: 40.r,
-                color: AppColors.accentCyan,
-              ),
+              child: Icon(icon, size: 34.r, color: AppColors.accentCyan),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 14.h),
             Text(
               title,
-              style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.heading3.copyWith(
+                color: AppColors.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               subtitle,
               style: AppTypography.bodySmall,
               textAlign: TextAlign.center,
             ),
             if (onActionTap != null && actionLabel != null) ...[
-              SizedBox(height: 20.h),
+              SizedBox(height: 16.h),
               ElevatedButton.icon(
                 onPressed: onActionTap,
                 icon: Icon(Icons.add_rounded, size: 18.r),
-                label: Text(actionLabel!, style: AppTypography.buttonMedium),
+                label: Text(
+                  actionLabel!.replaceFirst(RegExp(r'^\+\s*'), ''),
+                  style: AppTypography.buttonMedium,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
                 ),
               ),
             ],

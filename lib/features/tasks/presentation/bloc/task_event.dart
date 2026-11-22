@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/task_category_entity.dart';
 import '../../domain/entities/task_entity.dart';
@@ -35,7 +36,13 @@ abstract class TaskEvent extends Equatable {
 
 /// Load or refresh all tasks and categories from storage
 class LoadTasksEvent extends TaskEvent {
-  const LoadTasksEvent();
+  final bool isSilent;
+  final Completer<void>? completer;
+
+  const LoadTasksEvent({this.isSilent = false, this.completer});
+
+  @override
+  List<Object?> get props => [isSilent];
 }
 
 /// Add a new task
@@ -162,4 +169,3 @@ class DeleteCategoryEvent extends TaskEvent {
   @override
   List<Object?> get props => [categoryId];
 }
-

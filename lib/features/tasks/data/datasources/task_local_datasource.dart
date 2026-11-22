@@ -46,11 +46,19 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
   Future<List<TaskModel>> getTasks() async {
     try {
       final List<TaskModel> tasks = [];
+      final List<dynamic> legacyKeysToRemove = [];
       for (final key in tasksBox.keys) {
+        if (key.toString().startsWith('task_starter_')) {
+          legacyKeysToRemove.add(key);
+          continue;
+        }
         final raw = tasksBox.get(key);
         if (raw is Map) {
           tasks.add(TaskModel.fromMap(raw));
         }
+      }
+      for (final key in legacyKeysToRemove) {
+        await tasksBox.delete(key);
       }
       // Sort tasks: Urgent/High first, then by due date
       tasks.sort((a, b) {
@@ -203,62 +211,12 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       }
     }
 
-    // Seed default starter tasks if tasks box is empty
-    if (tasksBox.isEmpty) {
-      final now = DateTime.now();
-      final starterTasks = [
-        TaskModel(
-          id: 'task_starter_1',
-          title: 'Design high-fidelity UI components',
-          description: 'Refine dark mode glow effects, buttons, and responsive cards for Wiz Desk.',
-          categoryId: 'cat_design',
-          priority: TaskPriority.high,
-          status: TaskStatus.inProgress,
-          dueDate: now,
-          frequency: TaskFrequency.daily,
-          estimatedMinutes: 50,
-          spentMinutes: 25,
-          dailySpentMinutes: {
-            TaskEntity.formatDateKey(now): 25,
-          },
-          isFocusModeEnabled: true,
-          createdAt: now.subtract(const Duration(hours: 3)),
-        ),
-        TaskModel(
-          id: 'task_starter_2',
-          title: 'Morning code review & architecture sync',
-          description: 'Check clean architecture boundaries, entities, and use cases.',
-          categoryId: 'cat_coding',
-          priority: TaskPriority.urgent,
-          status: TaskStatus.todo,
-          dueDate: now,
-          frequency: TaskFrequency.once,
-          estimatedMinutes: 30,
-          spentMinutes: 0,
-          isFocusModeEnabled: true,
-          createdAt: now.subtract(const Duration(hours: 1)),
-        ),
-        TaskModel(
-          id: 'task_starter_3',
-          title: 'Study Flutter BLoC state management patterns',
-          description: 'Read event-driven reactive state transition documentation.',
-          categoryId: 'cat_study',
-          priority: TaskPriority.medium,
-          status: TaskStatus.completed,
-          dueDate: now.subtract(const Duration(days: 1)),
-          frequency: TaskFrequency.weekly,
-          customDays: const [1, 3, 5],
-          estimatedMinutes: 25,
-          spentMinutes: 25,
-          isFocusModeEnabled: true,
-          createdAt: now.subtract(const Duration(days: 1)),
-          completedAt: now.subtract(const Duration(hours: 5)),
-        ),
-      ];
-
-      for (final task in starterTasks) {
-        await tasksBox.put(task.id, task.toMap());
-      }
+    // Remove any legacy starter/temp tasks from previous app runs
+    final legacyStarterKeys = tasksBox.keys
+        .where((k) => k.toString().startsWith('task_starter_'))
+        .toList();
+    for (final key in legacyStarterKeys) {
+      await tasksBox.delete(key);
     }
   }
 }

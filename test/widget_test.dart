@@ -31,8 +31,9 @@ void main() {
     await di.initServiceLocator(isTesting: true);
   });
 
-  testWidgets('Wiz Desk HomeDashboardScreen builds and displays tasks',
-      (WidgetTester tester) async {
+  testWidgets('Wiz Desk HomeDashboardScreen builds and displays tasks', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.75;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -83,7 +84,8 @@ class MockTestTaskLocalDataSource implements TaskLocalDataSource {
   }
 
   @override
-  Future<List<TaskCategoryModel>> getCategories() async => List.from(_categories);
+  Future<List<TaskCategoryModel>> getCategories() async =>
+      List.from(_categories);
 
   @override
   Future<void> saveCategory(TaskCategoryModel category) async {
@@ -117,23 +119,6 @@ class MockTestTaskLocalDataSource implements TaskLocalDataSource {
         colorValue: 0xFF00F0FF,
       ),
     ]);
-
-    _tasks.add(
-      TaskModel(
-        id: 'test_1',
-        title: 'Design high-fidelity UI components',
-        description: 'Refine dark mode glow effects',
-        categoryId: 'cat_design',
-        priority: TaskPriority.high,
-        status: TaskStatus.inProgress,
-        dueDate: DateTime.now(),
-        frequency: TaskFrequency.daily,
-        estimatedMinutes: 50,
-        spentMinutes: 25,
-        isFocusModeEnabled: true,
-        createdAt: DateTime.now(),
-      ),
-    );
   }
 
   @override
