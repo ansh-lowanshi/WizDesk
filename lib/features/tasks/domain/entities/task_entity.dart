@@ -19,6 +19,7 @@ class TaskEntity extends Equatable {
   final Map<String, int> dailySpentMinutes;
   final Map<String, String> dailyDescriptions;
   final int estimatedMinutes;
+  final int pomodoroWorkMinutes;
   final int spentMinutes;
   final int progressPercent;
   final bool isFocusModeEnabled;
@@ -42,6 +43,7 @@ class TaskEntity extends Equatable {
     this.dailySpentMinutes = const {},
     this.dailyDescriptions = const {},
     this.estimatedMinutes = 25,
+    this.pomodoroWorkMinutes = 25,
     this.spentMinutes = 0,
     this.progressPercent = 0,
     this.isFocusModeEnabled = true,
@@ -50,7 +52,9 @@ class TaskEntity extends Equatable {
   });
 
   /// Check if the task is completed overall or today
-  bool get isCompleted => status == TaskStatus.completed;
+  bool get isCompleted =>
+      status == TaskStatus.completed ||
+      (estimatedMinutes > 0 && spentMinutes >= estimatedMinutes);
 
   /// Format date to YYYY-MM-DD key for daily maps
   static String formatDateKey(DateTime date) {
@@ -61,12 +65,15 @@ class TaskEntity extends Equatable {
   bool isCompletedOn(DateTime date) {
     final dateStr = formatDateKey(date);
     if (completedDates.contains(dateStr)) return true;
-    if (frequency == TaskFrequency.once && status == TaskStatus.completed) {
-      if (dueDate != null) {
+    if (status == TaskStatus.completed) {
+      if (dueDate != null && frequency == TaskFrequency.once) {
         return date.year == dueDate!.year &&
             date.month == dueDate!.month &&
             date.day == dueDate!.day;
       }
+      return true;
+    }
+    if (estimatedMinutes > 0 && getSpentMinutesFor(date) >= estimatedMinutes) {
       return true;
     }
     return false;
@@ -103,18 +110,39 @@ class TaskEntity extends Equatable {
     final targetDate = date ?? DateTime.now();
     if (isCompletedOn(targetDate)) return 100;
 
-    if (progressMode == TaskProgressMode.cumulative || frequency == TaskFrequency.once) {
+    final spent = getSpentMinutesFor(targetDate);
+    if (estimatedMinutes > 0 && spent >= estimatedMinutes) {
+      return 100;
+    }
+
+    if (progressMode == TaskProgressMode.cumulative ||
+        frequency == TaskFrequency.once) {
       return progressPercent;
     }
 
     final key = formatDateKey(targetDate);
     if (dailyProgress.containsKey(key)) {
-      return dailyProgress[key]!;
+      final recorded = dailyProgress[key]!;
+      if (dailyProgress.length <= 1 && progressPercent > recorded) {
+        return progressPercent;
+      }
+      return recorded;
+    }
+    if (estimatedMinutes > 0 && spent > 0) {
+      final calc = ((spent / estimatedMinutes) * 100).round();
+      return calc > 100 ? 100 : calc;
     }
     if (dailyProgress.isEmpty && progressPercent > 0) {
       return progressPercent;
     }
     return 0;
+  }
+
+  /// Remaining focus minutes for the task on a target date (estimated - spent)
+  int getRemainingMinutesFor([DateTime? date]) {
+    final spent = getSpentMinutesFor(date);
+    final remaining = estimatedMinutes - spent;
+    return remaining > 0 ? remaining : 0;
   }
 
   /// Get the spent minutes for a specific date (or overall)
@@ -126,7 +154,11 @@ class TaskEntity extends Equatable {
 
     final key = formatDateKey(targetDate);
     if (dailySpentMinutes.containsKey(key)) {
-      return dailySpentMinutes[key]!;
+      final recorded = dailySpentMinutes[key]!;
+      if (dailySpentMinutes.length <= 1 && spentMinutes > recorded) {
+        return spentMinutes;
+      }
+      return recorded;
     }
     if (dailySpentMinutes.isEmpty && spentMinutes > 0) {
       return spentMinutes;
@@ -190,6 +222,7 @@ class TaskEntity extends Equatable {
     Map<String, int>? dailySpentMinutes,
     Map<String, String>? dailyDescriptions,
     int? estimatedMinutes,
+    int? pomodoroWorkMinutes,
     int? spentMinutes,
     int? progressPercent,
     bool? isFocusModeEnabled,
@@ -213,6 +246,7 @@ class TaskEntity extends Equatable {
       dailySpentMinutes: dailySpentMinutes ?? this.dailySpentMinutes,
       dailyDescriptions: dailyDescriptions ?? this.dailyDescriptions,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      pomodoroWorkMinutes: pomodoroWorkMinutes ?? this.pomodoroWorkMinutes,
       spentMinutes: spentMinutes ?? this.spentMinutes,
       progressPercent: progressPercent ?? this.progressPercent,
       isFocusModeEnabled: isFocusModeEnabled ?? this.isFocusModeEnabled,
@@ -239,6 +273,7 @@ class TaskEntity extends Equatable {
         dailySpentMinutes,
         dailyDescriptions,
         estimatedMinutes,
+        pomodoroWorkMinutes,
         spentMinutes,
         progressPercent,
         isFocusModeEnabled,

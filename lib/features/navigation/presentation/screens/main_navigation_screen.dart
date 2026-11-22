@@ -11,6 +11,7 @@ import '../../../tasks/domain/entities/task_entity.dart';
 import '../../../tasks/presentation/screens/add_edit_task_screen.dart';
 import '../../../tasks/presentation/screens/home_dashboard_screen.dart';
 import '../../../focus/presentation/bloc/focus_bloc.dart';
+import '../../../focus/presentation/bloc/focus_event.dart';
 import '../../../focus/presentation/bloc/focus_state.dart';
 import '../../../tasks/presentation/bloc/task_bloc.dart';
 import '../../../tasks/presentation/bloc/task_event.dart';
@@ -60,6 +61,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _focusedTask = task;
       _currentIndex = 2; // Switch to Focus tab (Index 2)
     });
+    context.read<FocusBloc>().add(SetActiveTaskEvent(task));
   }
 
   @override
@@ -70,7 +72,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: BlocListener<FocusBloc, FocusState>(
             listenWhen: (previous, current) =>
-                previous.activeTask?.spentMinutes != current.activeTask?.spentMinutes &&
+                previous.activeTask != current.activeTask &&
                 current.activeTask != null,
             listener: (context, state) {
               if (state.activeTask != null) {
@@ -87,6 +89,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   HomeDashboardScreen(
                     onNavigateToAddTask: _openAddTaskModal,
                     onStartTaskFocus: _startTaskFocus,
+                    onNavigateToFocusTab: () => _onTabSelected(2),
                   ),
 
                   // Tab 1: Calendar (Month Grid & Daily Task Schedule)

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_icon_helper.dart';
@@ -28,7 +29,7 @@ class CategoryDistributionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Category Breakdown',
+                  context.l10n.categoryDistribution,
                   style: AppTypography.heading3,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -36,7 +37,7 @@ class CategoryDistributionCard extends StatelessWidget {
               ),
               SizedBox(width: 8.w),
               Text(
-                '${items.length} Categories',
+                '${items.length} ${context.l10n.taskCategories}',
                 style: AppTypography.caption,
               ),
             ],
@@ -47,7 +48,7 @@ class CategoryDistributionCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 20.h),
               child: Center(
                 child: Text(
-                  'No focus logs recorded yet.\nStart a Pomodoro session to see category breakdown!',
+                  context.l10n.noFocusLogsRecorded,
                   textAlign: TextAlign.center,
                   style: AppTypography.bodySmall,
                 ),

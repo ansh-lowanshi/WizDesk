@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -26,6 +27,8 @@ class DayResetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return GlassmorphicCard(
       padding: EdgeInsets.all(16.r),
       child: Column(
@@ -50,10 +53,10 @@ class DayResetSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Day Reset & Rollover', style: AppTypography.heading3),
+                    Text(l10n.dayResetTitle, style: AppTypography.heading3),
                     SizedBox(height: 2.h),
                     Text(
-                      'Count work before this hour as the previous day',
+                      l10n.dayResetSubtitle,
                       style: AppTypography.caption.copyWith(color: AppColors.textMuted),
                     ),
                   ],

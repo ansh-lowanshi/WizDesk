@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/app_icon_helper.dart';
 import '../../domain/entities/task_category_entity.dart';
 import '../bloc/task_bloc.dart';
@@ -46,7 +47,7 @@ class ManageCategoriesSheet extends StatelessWidget {
             SizedBox(width: 10.w),
             Expanded(
               child: Text(
-                'Delete Category?',
+                context.l10n.deleteCategoryTitle,
                 style: AppTypography.heading3,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -55,7 +56,7 @@ class ManageCategoriesSheet extends StatelessWidget {
           ],
         ),
         content: Text(
-          'Are you sure you want to delete "${category.name}"? Tasks assigned to this category will not be deleted.',
+          '${category.name}: ${context.l10n.deleteCategoryMessage}',
           style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
         ),
         actions: [
@@ -63,7 +64,7 @@ class ManageCategoriesSheet extends StatelessWidget {
             key: const ValueKey('cancel_delete_cat_btn'),
             onPressed: () => Navigator.of(dialogCtx).pop(),
             child: Text(
-              'Cancel',
+              context.l10n.cancel,
               style: AppTypography.buttonMedium.copyWith(color: AppColors.textMuted),
             ),
           ),
@@ -80,7 +81,7 @@ class ManageCategoriesSheet extends StatelessWidget {
               Navigator.of(dialogCtx).pop();
             },
             child: Text(
-              'Delete',
+              context.l10n.delete,
               style: AppTypography.buttonMedium.copyWith(color: Colors.white),
             ),
           ),
@@ -145,14 +146,14 @@ class ManageCategoriesSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Manage Categories',
+                          context.l10n.manageCategoriesTitle,
                           style: AppTypography.heading3,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 2.h),
                         Text(
-                          '${categories.length} custom and system categories',
+                          '${categories.length} ${context.l10n.categories}',
                           style: AppTypography.caption.copyWith(color: AppColors.textMuted),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -172,7 +173,7 @@ class ManageCategoriesSheet extends StatelessWidget {
                     ),
                     icon: Icon(Icons.add_rounded, size: 16.r, color: Colors.white),
                     label: Text(
-                      'Add New',
+                      context.l10n.addNew,
                       style: AppTypography.buttonMedium.copyWith(
                         color: Colors.white,
                         fontSize: 12.sp,
@@ -248,7 +249,7 @@ class ManageCategoriesSheet extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        category.name,
+                                        category.localizedName(context),
                                         style: AppTypography.bodyLarge.copyWith(
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.textPrimary,
@@ -256,7 +257,7 @@ class ManageCategoriesSheet extends StatelessWidget {
                                       ),
                                       SizedBox(height: 2.h),
                                       Text(
-                                        '$taskCount ${taskCount == 1 ? 'task' : 'tasks'}',
+                                        '$taskCount ${taskCount == 1 ? context.l10n.taskWord : context.l10n.tasksWord}',
                                         style: AppTypography.caption.copyWith(
                                           color: AppColors.textMuted,
                                         ),

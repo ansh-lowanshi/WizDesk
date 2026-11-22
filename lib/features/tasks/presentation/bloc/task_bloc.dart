@@ -53,8 +53,42 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   ) async {
     emit(const TaskLoading());
     try {
-      final tasks = await getTasksUseCase(const NoParams());
+      final loadedTasks = await getTasksUseCase(const NoParams());
       final categories = await getCategoriesUseCase(const NoParams());
+
+      // Auto-heal tasks whose spent time meets or exceeds estimatedMinutes
+      final now = DateTime.now();
+      final dateKey = TaskEntity.formatDateKey(now);
+      final tasks = <TaskEntity>[];
+      for (final task in loadedTasks) {
+        final spentToday = task.getSpentMinutesFor(now);
+        final isOverDueEstimated = task.estimatedMinutes > 0 &&
+            (task.spentMinutes >= task.estimatedMinutes ||
+                spentToday >= task.estimatedMinutes);
+        if (isOverDueEstimated &&
+            (task.status != TaskStatus.completed ||
+                !task.completedDates.contains(dateKey))) {
+          final updatedCompletedDates = List<String>.from(task.completedDates);
+          if (!updatedCompletedDates.contains(dateKey)) {
+            updatedCompletedDates.add(dateKey);
+          }
+          final updatedDailyProgress =
+              Map<String, int>.from(task.dailyProgress);
+          updatedDailyProgress[dateKey] = 100;
+
+          final healedTask = task.copyWith(
+            status: TaskStatus.completed,
+            progressPercent: 100,
+            completedDates: updatedCompletedDates,
+            dailyProgress: updatedDailyProgress,
+            completedAt: task.completedAt ?? now,
+          );
+          await updateTaskUseCase(healedTask);
+          tasks.add(healedTask);
+        } else {
+          tasks.add(task);
+        }
+      }
 
       final filtered = _computeFilteredTasks(
         allTasks: tasks,
@@ -471,7 +505,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       if (statusFilter == TaskStatusFilter.inProgress) {
         final isDoneOnDate = dateFilter == TaskDateFilter.today
             ? task.isCompletedOn(now)
-            : task.status == TaskStatus.completed;
+            : task.isCompleted;
         if (isDoneOnDate || task.status != TaskStatus.inProgress) {
           return false;
         }
@@ -479,7 +513,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       if (statusFilter == TaskStatusFilter.pending) {
         final isDoneOnDate = dateFilter == TaskDateFilter.today
             ? task.isCompletedOn(now)
-            : task.status == TaskStatus.completed;
+            : task.isCompleted;
         if (isDoneOnDate || task.status != TaskStatus.todo) {
           return false;
         }
@@ -487,7 +521,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       if (statusFilter == TaskStatusFilter.completed) {
         final isDoneOnDate = dateFilter == TaskDateFilter.today
             ? task.isCompletedOn(now)
-            : task.status == TaskStatus.completed;
+            : task.isCompleted;
         if (!isDoneOnDate) {
           return false;
         }

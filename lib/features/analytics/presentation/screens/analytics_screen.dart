@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
@@ -46,7 +47,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
-        title: Text('Productivity Analytics', style: AppTypography.heading3),
+        title: Text(context.l10n.analyticsOverview, style: AppTypography.heading3),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh_rounded,
@@ -94,7 +95,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               .read<AnalyticsBloc>()
                               .add(const LoadAnalyticsEvent());
                         },
-                        child: const Text('Retry'),
+                        child: Text(context.l10n.retry),
                       ),
                     ],
                   ),
@@ -137,7 +138,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         // Productivity Bar Chart
                         ProductivityChartCard(
                           points: summary.chartPoints,
-                          timeRangeSubtitle: summary.timeRange.subtitle,
+                          timeRangeSubtitle: summary.timeRange.localizedSubtitle(context),
                         ),
 
                         SizedBox(height: 18.h),
@@ -207,7 +208,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       : null,
                 ),
                 child: Text(
-                  range.label,
+                  range.localizedLabel(context),
                   style: AppTypography.buttonMedium.copyWith(
                     color: isSelected
                         ? Colors.white

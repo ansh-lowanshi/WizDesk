@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wizdesk/core/di/injection_container.dart' as di;
+import 'package:wizdesk/features/notes/data/datasources/note_local_datasource.dart';
+import 'package:wizdesk/features/notes/data/models/note_model.dart';
 import 'package:wizdesk/features/tasks/data/datasources/task_local_datasource.dart';
 import 'package:wizdesk/features/tasks/data/models/focus_session_model.dart';
 import 'package:wizdesk/features/tasks/data/models/task_category_model.dart';
@@ -21,7 +23,11 @@ void main() {
     final mockLocalDataSource = MockTestTaskLocalDataSource();
     await mockLocalDataSource.seedInitialDataIfEmpty();
 
+    final mockNoteDataSource = MockTestNoteLocalDataSource();
+    await mockNoteDataSource.seedInitialDataIfEmpty();
+
     di.sl.registerLazySingleton<TaskLocalDataSource>(() => mockLocalDataSource);
+    di.sl.registerLazySingleton<NoteLocalDataSource>(() => mockNoteDataSource);
     await di.initServiceLocator(isTesting: true);
   });
 
@@ -135,4 +141,48 @@ class MockTestTaskLocalDataSource implements TaskLocalDataSource {
     _tasks.clear();
     _categories.clear();
   }
+}
+
+class MockTestNoteLocalDataSource implements NoteLocalDataSource {
+  final List<NoteModel> _notes = [];
+
+  @override
+  Future<List<NoteModel>> getNotes() async => List.from(_notes);
+
+  @override
+  Future<NoteModel?> getNoteById(String id) async {
+    try {
+      return _notes.firstWhere((n) => n.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<List<NoteModel>> getNotesForTask(String taskId) async {
+    return _notes.where((n) => n.taskId == taskId).toList();
+  }
+
+  @override
+  Future<void> saveNote(NoteModel note) async {
+    final idx = _notes.indexWhere((n) => n.id == note.id);
+    if (idx != -1) {
+      _notes[idx] = note;
+    } else {
+      _notes.add(note);
+    }
+  }
+
+  @override
+  Future<void> deleteNote(String id) async {
+    _notes.removeWhere((n) => n.id == id);
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    _notes.clear();
+  }
+
+  @override
+  Future<void> seedInitialDataIfEmpty() async {}
 }

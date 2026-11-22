@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/app_icon_helper.dart';
 import '../../domain/entities/task_category_entity.dart';
 
@@ -44,7 +45,7 @@ class CategoryFilterCarousel extends StatelessWidget {
             final bool isSelected = selectedCategoryId == null;
             return _buildPill(
               isSelected: isSelected,
-              label: 'All',
+              label: context.l10n.filterAll,
               count: totalAllTasksCount,
               icon: Icons.grid_view_rounded,
               color: AppColors.isDarkMode
@@ -80,7 +81,7 @@ class CategoryFilterCarousel extends StatelessWidget {
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      'Manage',
+                      context.l10n.manage,
                       style: AppTypography.bodySmall.copyWith(
                         color: accentColor,
                         fontWeight: FontWeight.w600,
@@ -99,7 +100,7 @@ class CategoryFilterCarousel extends StatelessWidget {
 
           return _buildPill(
             isSelected: isSelected,
-            label: category.name,
+            label: category.localizedName(context),
             count: count,
             icon: AppIconHelper.getCategoryIcon(category.iconCode),
             color: categoryColor,

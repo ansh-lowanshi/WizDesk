@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -18,6 +19,8 @@ class TimerSettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return GlassmorphicCard(
       padding: EdgeInsets.all(16.r),
       borderRadius: 20.r,
@@ -43,9 +46,9 @@ class TimerSettingsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Focus Timer Setup', style: AppTypography.heading3),
+                    Text(l10n.timerSettings, style: AppTypography.heading3),
                     Text(
-                      'Customize your Pomodoro intervals',
+                      l10n.stayFocused,
                       style: AppTypography.caption,
                     ),
                   ],
@@ -58,8 +61,8 @@ class TimerSettingsSection extends StatelessWidget {
 
           // 1. Work Duration Slider
           _buildDurationSlider(
-            label: 'Deep Focus Duration',
-            subtitle: 'Target concentration block',
+            label: l10n.workDuration,
+            subtitle: l10n.stayFocused,
             valueMinutes: preferences.workDurationMinutes,
             min: 5,
             max: 60,
@@ -74,8 +77,8 @@ class TimerSettingsSection extends StatelessWidget {
 
           // 2. Short Break Duration Slider
           _buildDurationSlider(
-            label: 'Short Break Duration',
-            subtitle: 'Rest between focus sessions',
+            label: l10n.shortBreakDuration,
+            subtitle: l10n.takeBreak,
             valueMinutes: preferences.shortBreakMinutes,
             min: 1,
             max: 15,
@@ -90,8 +93,8 @@ class TimerSettingsSection extends StatelessWidget {
 
           // 3. Long Break Duration Slider
           _buildDurationSlider(
-            label: 'Long Break Duration',
-            subtitle: 'Extended rest after a complete cycle set',
+            label: l10n.longBreakDuration,
+            subtitle: l10n.longBreak,
             valueMinutes: preferences.longBreakMinutes,
             min: 5,
             max: 45,
@@ -112,9 +115,9 @@ class TimerSettingsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Long Break Interval', style: AppTypography.titleSmall),
+                    Text(l10n.longBreakInterval, style: AppTypography.titleSmall),
                     Text(
-                      'Number of focus sessions before long break',
+                      '${l10n.sessionsCompleted} -> ${l10n.longBreak}',
                       style: AppTypography.caption,
                     ),
                   ],
@@ -133,7 +136,7 @@ class TimerSettingsSection extends StatelessWidget {
                   ),
                   SizedBox(width: 10.w),
                   Text(
-                    '${preferences.longBreakInterval} cycles',
+                    '${preferences.longBreakInterval} ${l10n.round}',
                     style: AppTypography.titleMedium.copyWith(
                       color: AppColors.accentCyan,
                       fontWeight: FontWeight.w700,
@@ -157,8 +160,8 @@ class TimerSettingsSection extends StatelessWidget {
 
           // 5. Auto-start Breaks Toggle
           _buildSwitchRow(
-            title: 'Auto-Start Breaks',
-            subtitle: 'Automatically start break timer when focus completes',
+            title: l10n.autoStartBreaks,
+            subtitle: l10n.takeBreak,
             value: preferences.autoStartBreaks,
             onChanged: (val) {
               onChanged(preferences.copyWith(autoStartBreaks: val));
@@ -169,8 +172,8 @@ class TimerSettingsSection extends StatelessWidget {
 
           // 6. Auto-start Pomodoros Toggle
           _buildSwitchRow(
-            title: 'Auto-Start Focus',
-            subtitle: 'Automatically start focus timer when break completes',
+            title: l10n.autoStartPomodoros,
+            subtitle: l10n.stayFocused,
             value: preferences.autoStartPomodoros,
             onChanged: (val) {
               onChanged(preferences.copyWith(autoStartPomodoros: val));

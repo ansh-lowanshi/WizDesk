@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
+import 'package:wizdesk/core/localization/app_localizations.dart';
 import 'package:wizdesk/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:wizdesk/features/notes/domain/entities/note_entity.dart';
+import 'package:wizdesk/features/notes/domain/repositories/note_repository.dart';
+import 'package:wizdesk/features/notes/domain/usecases/add_note_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/delete_note_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/update_note_usecase.dart';
+import 'package:wizdesk/features/notes/presentation/bloc/note_bloc.dart';
+import 'package:wizdesk/features/notes/presentation/bloc/note_event.dart';
+import 'package:wizdesk/features/notes/presentation/bloc/note_state.dart';
 import 'package:wizdesk/features/tasks/domain/entities/focus_session_entity.dart';
 import 'package:wizdesk/features/tasks/domain/entities/task_category_entity.dart';
 import 'package:wizdesk/features/tasks/domain/entities/task_entity.dart';
@@ -59,13 +70,41 @@ class MockTaskRepository implements TaskRepository {
       List.from(_sessions);
 }
 
+class MockNoteRepository implements NoteRepository {
+  final List<NoteEntity> _notes = [];
+
+  @override
+  Future<List<NoteEntity>> getNotes() async => List.from(_notes);
+  @override
+  Future<NoteEntity?> getNoteById(String id) async =>
+      _notes.firstWhere((n) => n.id == id);
+  @override
+  Future<List<NoteEntity>> getNotesForTask(String taskId) async =>
+      _notes.where((n) => n.taskId == taskId).toList();
+  @override
+  Future<void> saveNote(NoteEntity note) async {
+    final i = _notes.indexWhere((n) => n.id == note.id);
+    if (i != -1) {
+      _notes[i] = note;
+    } else {
+      _notes.add(note);
+    }
+  }
+  @override
+  Future<void> deleteNote(String id) async =>
+      _notes.removeWhere((n) => n.id == id);
+}
+
 void main() {
   late MockTaskRepository taskRepo;
+  late MockNoteRepository noteRepo;
   late TaskBloc taskBloc;
+  late NoteBloc noteBloc;
 
   setUp(() {
     GoogleFonts.config.allowRuntimeFetching = false;
     taskRepo = MockTaskRepository();
+    noteRepo = MockNoteRepository();
 
     final now = DateTime.now();
     taskRepo._categories.add(
@@ -101,10 +140,18 @@ void main() {
       deleteTaskUseCase: DeleteTaskUseCase(taskRepo),
       getCategoriesUseCase: GetCategoriesUseCase(taskRepo),
     );
+
+    noteBloc = NoteBloc(
+      getNotesUseCase: GetNotesUseCase(noteRepo),
+      addNoteUseCase: AddNoteUseCase(noteRepo),
+      updateNoteUseCase: UpdateNoteUseCase(noteRepo),
+      deleteNoteUseCase: DeleteNoteUseCase(noteRepo),
+    );
   });
 
   tearDown(() {
     taskBloc.close();
+    noteBloc.close();
   });
 
   Widget buildTestWidget() {
@@ -112,9 +159,18 @@ void main() {
       designSize: const Size(AppConstants.designWidth, AppConstants.designHeight),
       minTextAdapt: true,
       builder: (context, child) {
-        return BlocProvider<TaskBloc>.value(
-          value: taskBloc,
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider<TaskBloc>.value(value: taskBloc),
+            BlocProvider<NoteBloc>.value(value: noteBloc),
+          ],
           child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             home: CalendarScreen(),
           ),
         );
@@ -134,6 +190,11 @@ void main() {
           taskBloc.stream.firstWhere((s) => s is TaskLoaded);
       taskBloc.add(const LoadTasksEvent());
       await taskLoadedFuture;
+
+      final noteLoadedFuture =
+          noteBloc.stream.firstWhere((s) => s is NoteLoaded);
+      noteBloc.add(const LoadNotesEvent());
+      await noteLoadedFuture;
     });
 
     await tester.pumpWidget(buildTestWidget());
@@ -141,7 +202,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     // Verify Calendar Header & Task
-    expect(find.text('Schedule Calendar'), findsOneWidget);
     expect(find.text('Calendar Scheduled Task'), findsOneWidget);
     expect(find.byKey(const ValueKey('cal_header_add_task_btn')), findsOneWidget);
 
@@ -156,6 +216,58 @@ void main() {
     expect(prevMonthBtn, findsOneWidget);
     await tester.tap(prevMonthBtn);
     await tester.pump();
+  });
+
+  testWidgets('CalendarScreen toggles between Tasks and Notes tabs and displays notes',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    noteRepo._notes.add(
+      NoteEntity(
+        id: 'note_cal_1',
+        title: 'Project Roadmap Note',
+        content: 'Milestones outlined for sprint.',
+        createdAt: now,
+        updatedAt: now,
+        date: DateTime(now.year, now.month, now.day),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      taskBloc.add(const LoadTasksEvent());
+      await taskBloc.stream.firstWhere((s) => s is TaskLoaded);
+
+      noteBloc.add(const LoadNotesEvent());
+      await noteBloc.stream.firstWhere((s) => s is NoteLoaded);
+    });
+
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    // Verify Tab buttons exist
+    expect(find.byKey(const ValueKey('cal_tab_tasks')), findsOneWidget);
+    expect(find.byKey(const ValueKey('cal_tab_notes')), findsOneWidget);
+
+    // Initially Tasks tab is active
+    expect(find.text('Calendar Scheduled Task'), findsOneWidget);
+    expect(find.text('Project Roadmap Note'), findsNothing);
+
+    // Switch to Notes tab
+    await tester.tap(find.byKey(const ValueKey('cal_tab_notes')));
+    await tester.pumpAndSettle();
+
+    // Now Note is displayed
+    expect(find.text('Project Roadmap Note'), findsOneWidget);
+
+    // Switch back to Tasks tab
+    await tester.tap(find.byKey(const ValueKey('cal_tab_tasks')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Calendar Scheduled Task'), findsOneWidget);
   });
 
   testWidgets('CalendarScreen reflects recurring daily and custom days tasks',
@@ -184,6 +296,9 @@ void main() {
           taskBloc.stream.firstWhere((s) => s is TaskLoaded);
       taskBloc.add(const LoadTasksEvent());
       await taskLoadedFuture;
+
+      noteBloc.add(const LoadNotesEvent());
+      await noteBloc.stream.firstWhere((s) => s is NoteLoaded);
     });
 
     await tester.pumpWidget(buildTestWidget());
@@ -206,6 +321,9 @@ void main() {
           taskBloc.stream.firstWhere((s) => s is TaskLoaded);
       taskBloc.add(const LoadTasksEvent());
       await taskLoadedFuture;
+
+      noteBloc.add(const LoadNotesEvent());
+      await noteBloc.stream.firstWhere((s) => s is NoteLoaded);
     });
 
     await tester.pumpWidget(buildTestWidget());
@@ -225,7 +343,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify confirmation dialog appeared
-    expect(find.text('Delete Task?'), findsOneWidget);
+    expect(find.text('Delete Task'), findsOneWidget);
     expect(find.byKey(const ValueKey('cancel_delete_btn')), findsOneWidget);
     expect(find.byKey(const ValueKey('confirm_delete_btn')), findsOneWidget);
 
@@ -249,6 +367,9 @@ void main() {
           taskBloc.stream.firstWhere((s) => s is TaskLoaded);
       taskBloc.add(const LoadTasksEvent());
       await taskLoadedFuture;
+
+      noteBloc.add(const LoadNotesEvent());
+      await noteBloc.stream.firstWhere((s) => s is NoteLoaded);
     });
 
     await tester.pumpWidget(buildTestWidget());

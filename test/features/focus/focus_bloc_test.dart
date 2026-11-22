@@ -300,5 +300,158 @@ void main() {
         ),
       );
     });
+
+    test(
+        'SetActiveTaskEvent initializes timer with remaining time and auto-completes when finished',
+        () async {
+      final now = DateTime.now();
+      final dateKey = TaskEntity.formatDateKey(now);
+      final task = TaskEntity(
+        id: 'task_auto_complete_1',
+        title: 'Complete Design System',
+        categoryId: 'cat_work',
+        priority: TaskPriority.high,
+        status: TaskStatus.inProgress,
+        dueDate: now,
+        frequency: TaskFrequency.daily,
+        estimatedMinutes: 50,
+        spentMinutes: 35,
+        dailySpentMinutes: {dateKey: 35},
+        isFocusModeEnabled: true,
+        createdAt: now,
+      );
+
+      await repository.addTask(task);
+
+      // 1. Setting active task should set timer to remaining 15 minutes (900 sec)
+      focusBloc.add(SetActiveTaskEvent(task));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.activeTask?.id == task.id &&
+            state.totalSeconds == 15 * 60 &&
+            state.remainingSeconds == 15 * 60)),
+      );
+
+      // 2. Start session
+      focusBloc.add(const StartFocusSessionEvent());
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.running &&
+            state.totalSeconds == 15 * 60)),
+      );
+
+      // 3. Timer completes (reaches 0) -> task should auto-complete
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 0));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.completed &&
+            state.activeTask?.status == TaskStatus.completed &&
+            state.activeTask?.progressPercent == 100 &&
+            (state.activeTask?.isCompletedOn(now) ?? false))),
+      );
+
+      final updatedRepoTask = await repository.getTaskById(task.id);
+      expect(updatedRepoTask?.status, TaskStatus.completed);
+      expect(updatedRepoTask?.progressPercent, 100);
+      expect(updatedRepoTask?.isCompletedOn(now), isTrue);
+    });
+
+    test(
+        'Pomodoro cycle completion does not complete task prematurely if daily required time is not met',
+        () async {
+      final now = DateTime.now();
+      final dateKey = TaskEntity.formatDateKey(now);
+      final task = TaskEntity(
+        id: 'task_cycles_test',
+        title: 'Temp 1',
+        categoryId: 'cat_work',
+        priority: TaskPriority.high,
+        status: TaskStatus.inProgress,
+        dueDate: now,
+        frequency: TaskFrequency.daily,
+        estimatedMinutes: 30, // 30m total target
+        pomodoroWorkMinutes: 15, // 15m pomodoro sessions (2 cycles total)
+        spentMinutes: 0,
+        dailySpentMinutes: {dateKey: 0},
+        isFocusModeEnabled: true,
+        createdAt: now,
+      );
+
+      await repository.addTask(task);
+
+      // 1. Setting active task should set timer to 15m pomodoro interval
+      focusBloc.add(SetActiveTaskEvent(task));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.activeTask?.id == task.id &&
+            state.totalSeconds == 15 * 60 &&
+            state.remainingSeconds == 15 * 60 &&
+            state.completedCycles == 0)),
+      );
+
+      // 2. Start Cycle 1
+      focusBloc.add(const StartFocusSessionEvent());
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.running &&
+            state.totalSeconds == 15 * 60)),
+      );
+
+      // 3. Cycle 1 completes (15m elapsed, remaining 0)
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 0));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.completed &&
+            state.completedCycles == 1 &&
+            state.activeTask?.status == TaskStatus.inProgress &&
+            state.activeTask?.progressPercent == 50 &&
+            !(state.activeTask?.isCompletedOn(now) ?? true))),
+      );
+
+      final repoAfterCycle1 = await repository.getTaskById(task.id);
+      expect(repoAfterCycle1?.status, TaskStatus.inProgress);
+      expect(repoAfterCycle1?.progressPercent, 50);
+      expect(repoAfterCycle1?.isCompletedOn(now), isFalse);
+
+      // 4. Start Cycle 2 (CONTINUE)
+      focusBloc.add(const StartFocusSessionEvent());
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.running &&
+            state.totalSeconds == 15 * 60)),
+      );
+
+      // 5. Cycle 2 completes (another 15m elapsed -> total 30m)
+      focusBloc.add(const TimerTickedEvent(remainingSeconds: 0));
+
+      await expectLater(
+        focusBloc.stream,
+        emits(predicate<FocusState>((state) =>
+            state.status == TimerStatus.completed &&
+            state.completedCycles == 2 &&
+            state.activeTask?.status == TaskStatus.completed &&
+            state.activeTask?.progressPercent == 100 &&
+            (state.activeTask?.isCompletedOn(now) ?? false))),
+      );
+
+      final repoAfterCycle2 = await repository.getTaskById(task.id);
+      expect(repoAfterCycle2?.status, TaskStatus.completed);
+      expect(repoAfterCycle2?.progressPercent, 100);
+      expect(repoAfterCycle2?.isCompletedOn(now), isTrue);
+    });
   });
 }

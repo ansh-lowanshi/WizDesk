@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
+import 'package:wizdesk/core/localization/app_language.dart';
+import 'package:wizdesk/core/localization/app_localizations.dart';
+import 'package:wizdesk/core/localization/bloc/locale_bloc.dart';
 import 'package:wizdesk/core/theme/bloc/theme_bloc.dart';
 import 'package:wizdesk/features/analytics/presentation/bloc/analytics_bloc.dart';
 import 'package:wizdesk/features/analytics/presentation/bloc/analytics_event.dart';
@@ -11,6 +16,14 @@ import 'package:wizdesk/features/analytics/presentation/bloc/analytics_state.dar
 import 'package:wizdesk/features/focus/domain/services/timer_ticker.dart';
 import 'package:wizdesk/features/focus/presentation/bloc/focus_bloc.dart';
 import 'package:wizdesk/features/navigation/presentation/screens/main_navigation_screen.dart';
+import 'package:wizdesk/features/notes/domain/entities/note_entity.dart';
+import 'package:wizdesk/features/notes/domain/repositories/note_repository.dart';
+import 'package:wizdesk/features/notes/domain/usecases/add_note_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/delete_note_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:wizdesk/features/notes/domain/usecases/update_note_usecase.dart';
+import 'package:wizdesk/features/notes/presentation/bloc/note_bloc.dart';
+
 import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
 import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
 import 'package:wizdesk/features/settings/domain/usecases/clear_all_data_usecase.dart';
@@ -106,18 +119,51 @@ class MockTaskRepository implements TaskRepository {
       List.from(_sessions);
 }
 
+class MockNoteRepository implements NoteRepository {
+  final List<NoteEntity> _notes = [];
+
+  @override
+  Future<List<NoteEntity>> getNotes() async => List.from(_notes);
+  @override
+  Future<NoteEntity?> getNoteById(String id) async =>
+      _notes.firstWhere((n) => n.id == id);
+  @override
+  Future<List<NoteEntity>> getNotesForTask(String taskId) async =>
+      _notes.where((n) => n.taskId == taskId).toList();
+  @override
+  Future<void> saveNote(NoteEntity note) async {
+    final i = _notes.indexWhere((n) => n.id == note.id);
+    if (i != -1) {
+      _notes[i] = note;
+    } else {
+      _notes.add(note);
+    }
+  }
+  @override
+  Future<void> deleteNote(String id) async =>
+      _notes.removeWhere((n) => n.id == id);
+}
+
 void main() {
   late MockSettingsRepository settingsRepo;
   late MockTaskRepository taskRepo;
+  late MockNoteRepository noteRepo;
   late SettingsBloc settingsBloc;
   late TaskBloc taskBloc;
   late FocusBloc focusBloc;
   late AnalyticsBloc analyticsBloc;
+  late NoteBloc noteBloc;
+
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await initializeDateFormatting('en', null);
+  });
 
   setUp(() {
     GoogleFonts.config.allowRuntimeFetching = false;
     settingsRepo = MockSettingsRepository();
     taskRepo = MockTaskRepository();
+    noteRepo = MockNoteRepository();
 
     settingsBloc = SettingsBloc(
       getSettingsUseCase: GetSettingsUseCase(settingsRepo),
@@ -145,6 +191,13 @@ void main() {
       getFocusSessionsUseCase: GetFocusSessionsUseCase(taskRepo),
       getCategoriesUseCase: GetCategoriesUseCase(taskRepo),
     );
+
+    noteBloc = NoteBloc(
+      getNotesUseCase: GetNotesUseCase(noteRepo),
+      addNoteUseCase: AddNoteUseCase(noteRepo),
+      updateNoteUseCase: UpdateNoteUseCase(noteRepo),
+      deleteNoteUseCase: DeleteNoteUseCase(noteRepo),
+    );
   });
 
   tearDown(() {
@@ -152,6 +205,7 @@ void main() {
     taskBloc.close();
     focusBloc.close();
     analyticsBloc.close();
+    noteBloc.close();
   });
 
   Widget buildTestWidget() {
@@ -166,13 +220,24 @@ void main() {
             BlocProvider<ThemeBloc>(
               create: (_) => ThemeBloc(settingsRepository: settingsRepo),
             ),
+            BlocProvider<LocaleBloc>(
+              create: (_) => LocaleBloc(settingsRepository: settingsRepo),
+            ),
             BlocProvider<SettingsBloc>.value(value: settingsBloc),
             BlocProvider<TaskBloc>.value(value: taskBloc),
             BlocProvider<FocusBloc>.value(value: focusBloc),
             BlocProvider<AnalyticsBloc>.value(value: analyticsBloc),
+            BlocProvider<NoteBloc>.value(value: noteBloc),
           ],
-          child: const MaterialApp(
-            home: MainNavigationScreen(),
+          child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLanguage.supportedLocales,
+            home: const MainNavigationScreen(),
           ),
         );
       },
@@ -203,6 +268,8 @@ void main() {
     });
 
     await tester.pumpWidget(buildTestWidget());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     // 1. Tab 0: Verify Today (Home Tasks Dashboard) loaded
     expect(find.byType(MainNavigationScreen), findsOneWidget);
@@ -214,7 +281,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Schedule Calendar'), findsOneWidget);
+    expect(find.text('Schedule & Calendar'), findsOneWidget);
     expect(find.text('Navigation Integration Task'), findsOneWidget);
 
     // 3. Switch to Tab 2: Focus Timer
@@ -224,7 +291,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Deep Focus'), findsOneWidget);
+    expect(find.text('Focus Session'), findsOneWidget);
     expect(find.text('25:00'), findsOneWidget);
 
     // 4. Switch to Tab 3: Analytics
@@ -245,7 +312,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Profile & Settings'), findsOneWidget);
-    expect(find.text('Focus Timer Setup'), findsOneWidget);
+    expect(find.text('Timer Customization'), findsOneWidget);
 
     // 6. Switch back to Today and test Header Add Task button
     final todayTab = find.byKey(const ValueKey('nav_item_0'));

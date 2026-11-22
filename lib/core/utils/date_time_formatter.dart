@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
+import '../localization/app_localizations.dart';
 
 /// Formatter utilities for tasks, calendar days, and timers
 class DateTimeFormatter {
@@ -8,7 +10,23 @@ class DateTimeFormatter {
   static final DateFormat _timeFormat = DateFormat('hh:mm a');
 
   /// Format date for task list (e.g. "Today", "Tomorrow", "Yesterday", or "Oct 24")
-  static String formatTaskDueDate(DateTime? date) {
+  static String formatTaskDueDate(DateTime? date, [BuildContext? context]) {
+    if (context != null) {
+      final l10n = context.l10n;
+      if (date == null) return l10n.noDueDate;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final taskDate = DateTime(date.year, date.month, date.day);
+
+      final difference = taskDate.difference(today).inDays;
+      if (difference == 0) return l10n.today;
+      if (difference == 1) return l10n.tomorrow;
+      if (difference == -1) return l10n.yesterday;
+
+      final locale = Localizations.localeOf(context).languageCode;
+      return DateFormat('MMM d', locale).format(date);
+    }
+
     if (date == null) return 'No date';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

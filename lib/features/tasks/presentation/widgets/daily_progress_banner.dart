@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/date_time_formatter.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../../core/widgets/glow_container.dart';
@@ -68,7 +69,7 @@ class DailyProgressBanner extends StatelessWidget {
                             ),
                             SizedBox(width: 5.w),
                             Text(
-                              'TODAY\'S PROGRESS',
+                              context.l10n.todaysProgress,
                               style: AppTypography.badge.copyWith(
                                 color: accentColor,
                                 letterSpacing: 0.8,
@@ -80,7 +81,7 @@ class DailyProgressBanner extends StatelessWidget {
                     ),
                     SizedBox(height: 10.h),
                     Text(
-                      '$completedTasks of $totalTasks Tasks Done',
+                      '$completedTasks ${context.l10n.ofPreposition} $totalTasks ${context.l10n.tasksDone}',
                       style: AppTypography.titleMedium.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
@@ -142,7 +143,7 @@ class DailyProgressBanner extends StatelessWidget {
                   child: _buildMetricItem(
                     icon: Icons.check_circle_outline_rounded,
                     color: AppColors.success,
-                    label: 'Completed',
+                    label: context.l10n.completed,
                     value: '$completedTasks',
                   ),
                 ),
@@ -151,7 +152,7 @@ class DailyProgressBanner extends StatelessWidget {
                   child: _buildMetricItem(
                     icon: Icons.pending_actions_rounded,
                     color: AppColors.warning,
-                    label: 'Remaining',
+                    label: context.l10n.remaining,
                     value: '${totalTasks - completedTasks}',
                   ),
                 ),
@@ -160,7 +161,7 @@ class DailyProgressBanner extends StatelessWidget {
                   child: _buildMetricItem(
                     icon: Icons.timer_outlined,
                     color: AppColors.primaryLight,
-                    label: 'Focus Time',
+                    label: context.l10n.focusTime,
                     value: DateTimeFormatter.formatDurationMinutes(
                       totalFocusMinutes,
                     ),

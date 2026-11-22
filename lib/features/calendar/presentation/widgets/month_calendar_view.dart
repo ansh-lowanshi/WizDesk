@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../tasks/domain/entities/task_entity.dart';
 import '../../../tasks/domain/entities/task_enums.dart';
+import '../../../notes/domain/entities/note_entity.dart';
 
 /// Interactive Month Calendar Grid with Task Indicators
 class MonthCalendarView extends StatelessWidget {
   final DateTime focusedMonth;
   final DateTime selectedDate;
   final List<TaskEntity> allTasks;
+  final List<NoteEntity>? allNotes;
   final ValueChanged<DateTime> onDateSelected;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
@@ -22,21 +25,12 @@ class MonthCalendarView extends StatelessWidget {
     required this.focusedMonth,
     required this.selectedDate,
     required this.allTasks,
+    this.allNotes,
     required this.onDateSelected,
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onTodayPressed,
   });
-
-  static const List<String> _weekdays = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun'
-  ];
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -124,7 +118,7 @@ class MonthCalendarView extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        DateFormat('MMMM yyyy').format(focusedMonth),
+                        DateFormat('MMMM yyyy', Localizations.localeOf(context).languageCode).format(focusedMonth),
                         style: AppTypography.heading3.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
@@ -164,7 +158,7 @@ class MonthCalendarView extends StatelessWidget {
                               ),
                               SizedBox(width: 4.w),
                               Text(
-                                'Today',
+                                context.l10n.today,
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.isDarkMode
                                       ? AppColors.accentCyan
@@ -212,7 +206,10 @@ class MonthCalendarView extends StatelessWidget {
           // 2. Weekday Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: _weekdays.map((day) {
+            children: List.generate(7, (i) {
+              // 2026-05-04 is a Monday
+              final date = DateTime(2026, 5, 4 + i);
+              final day = DateFormat('E', Localizations.localeOf(context).languageCode).format(date);
               return Expanded(
                 child: Center(
                   child: Text(
@@ -225,7 +222,7 @@ class MonthCalendarView extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ),
 
           SizedBox(height: 8.h),
@@ -269,6 +266,7 @@ class MonthCalendarView extends StatelessWidget {
               final isSelected = _isSameDay(dayDate, selectedDate);
               final isToday = _isSameDay(dayDate, now);
               final dayTasks = _getTasksForDay(dayDate);
+              final dayHasNotes = allNotes?.any((n) => n.isRelevantForDate(dayDate)) ?? false;
               final hasPending =
                   dayTasks.any((t) => !t.isCompletedOn(dayDate));
               final hasCompleted =
@@ -340,8 +338,8 @@ class MonthCalendarView extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 2.h),
-                      // Task Status Dots
-                      if (dayTasks.isNotEmpty)
+                      // Task Status & Note Indicator Dots
+                      if (dayTasks.isNotEmpty || dayHasNotes)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -362,6 +360,16 @@ class MonthCalendarView extends StatelessWidget {
                                 margin: EdgeInsets.symmetric(horizontal: 1.w),
                                 decoration: const BoxDecoration(
                                   color: AppColors.success,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            if (dayHasNotes)
+                              Container(
+                                width: 4.5.r,
+                                height: 4.5.r,
+                                margin: EdgeInsets.symmetric(horizontal: 1.w),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accentPurple,
                                   shape: BoxShape.circle,
                                 ),
                               ),

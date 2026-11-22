@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../features/settings/domain/models/app_font_family.dart';
 import 'app_colors.dart';
 
 /// Wiz Desk Centralized Typography System
@@ -9,10 +8,7 @@ import 'app_colors.dart';
 /// Designed to be ultra-clean, modern, and focused for productivity.
 /// Easily switchable at runtime via [currentFontFamily] and [AppFontFamily].
 class AppTypography {
-  /// Currently active global font family
-  static AppFontFamily currentFontFamily = AppFontFamily.plusJakartaSans;
-
-  /// Dynamic font builder based on [currentFontFamily]
+  /// Fixed primary font: Plus Jakarta Sans
   static TextStyle Function({
     TextStyle? textStyle,
     Color? color,
@@ -32,18 +28,7 @@ class AppTypography {
     Color? decorationColor,
     TextDecorationStyle? decorationStyle,
     double? decorationThickness,
-  }) get primaryFontBuilder {
-    switch (currentFontFamily) {
-      case AppFontFamily.spaceGrotesk:
-        return GoogleFonts.spaceGrotesk;
-      case AppFontFamily.inter:
-        return GoogleFonts.inter;
-      case AppFontFamily.outfit:
-        return GoogleFonts.outfit;
-      case AppFontFamily.plusJakartaSans:
-        return GoogleFonts.plusJakartaSans;
-    }
-  }
+  }) get primaryFontBuilder => GoogleFonts.plusJakartaSans;
 
   /// Dedicated font for Focus Timer countdown numerals (modern geometric look)
   static TextStyle Function({

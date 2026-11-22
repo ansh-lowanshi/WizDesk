@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/constants/app_constants.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/localization/app_language.dart';
+import 'core/localization/app_localizations.dart';
+import 'core/localization/bloc/locale_bloc.dart';
+import 'core/localization/bloc/locale_event.dart';
+import 'core/localization/bloc/locale_state.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/app_typography.dart';
 import 'core/theme/bloc/theme_bloc.dart';
 import 'core/theme/bloc/theme_event.dart';
 import 'core/theme/bloc/theme_state.dart';
@@ -15,6 +20,8 @@ import 'features/focus/presentation/bloc/focus_bloc.dart';
 import 'features/navigation/presentation/screens/main_navigation_screen.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
 import 'features/settings/presentation/bloc/settings_event.dart';
+import 'features/notes/presentation/bloc/note_bloc.dart';
+import 'features/notes/presentation/bloc/note_event.dart';
 import 'features/tasks/presentation/bloc/task_bloc.dart';
 import 'features/tasks/presentation/bloc/task_event.dart';
 
@@ -45,6 +52,10 @@ class WizDeskApp extends StatelessWidget {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
+            BlocProvider<LocaleBloc>(
+              create: (context) =>
+                  di.sl<LocaleBloc>()..add(const InitLocaleEvent()),
+            ),
             BlocProvider<ThemeBloc>(
               create: (context) =>
                   di.sl<ThemeBloc>()..add(const InitThemeEvent()),
@@ -61,19 +72,33 @@ class WizDeskApp extends StatelessWidget {
               create: (context) =>
                   di.sl<SettingsBloc>()..add(const LoadSettingsEvent()),
             ),
+            BlocProvider<NoteBloc>(
+              create: (context) =>
+                  di.sl<NoteBloc>()..add(const LoadNotesEvent()),
+            ),
           ],
-          child: BlocBuilder<ThemeBloc, ThemeState>(
-            builder: (context, themeState) {
-              AppColors.isDarkMode = themeState.isDarkMode;
-              AppTypography.currentFontFamily = themeState.fontFamily;
-
-              return MaterialApp(
-                title: AppConstants.appName,
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
-                themeMode: themeState.themeMode.toFlutterThemeMode,
-                home: child,
+          child: BlocBuilder<LocaleBloc, LocaleState>(
+            builder: (context, localeState) {
+              return BlocBuilder<ThemeBloc, ThemeState>(
+                builder: (context, themeState) {
+                  AppColors.isDarkMode = themeState.isDarkMode;
+                  return MaterialApp(
+                    title: AppConstants.appName,
+                    debugShowCheckedModeBanner: false,
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: themeState.themeMode.toFlutterThemeMode,
+                    locale: localeState.locale,
+                    supportedLocales: AppLanguage.supportedLocales,
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    home: child,
+                  );
+                },
               );
             },
           ),

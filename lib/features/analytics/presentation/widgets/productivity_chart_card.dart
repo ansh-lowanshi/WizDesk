@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -49,7 +50,7 @@ class _ProductivityChartCardState extends State<ProductivityChartCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Focus Activity',
+                    Text(context.l10n.focusActivity,
                         style: AppTypography.heading3,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),

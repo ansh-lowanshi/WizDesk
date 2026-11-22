@@ -3,13 +3,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/app_icon_helper.dart';
 import '../../../../core/utils/date_time_formatter.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../focus/presentation/bloc/focus_bloc.dart';
+import '../../../focus/presentation/bloc/focus_state.dart';
 import '../../domain/entities/task_category_entity.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/task_enums.dart';
 import '../../../focus/presentation/screens/focus_timer_screen.dart';
+import '../../../notes/presentation/bloc/note_bloc.dart';
+import '../../../notes/presentation/bloc/note_state.dart';
+import '../../../notes/presentation/screens/note_editor_screen.dart';
+import '../../../notes/presentation/widgets/task_notes_bottom_sheet.dart';
 
 /// Interactive Task Card component with expandable description on demand
 class TaskCard extends StatefulWidget {
@@ -112,7 +120,7 @@ class _TaskCardState extends State<TaskCard>
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
-                'Delete Task?',
+                context.l10n.deleteTask,
                 style: AppTypography.heading3.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -122,7 +130,7 @@ class _TaskCardState extends State<TaskCard>
           ],
         ),
         content: Text(
-          'Are you sure you want to delete "${widget.task.title}"? This action cannot be undone.',
+          context.l10n.confirmDeleteTask,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -133,7 +141,7 @@ class _TaskCardState extends State<TaskCard>
             key: const ValueKey('cancel_delete_btn'),
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
-              'Cancel',
+              context.l10n.cancel,
               style: AppTypography.buttonMedium.copyWith(
                 color: AppColors.textMuted,
               ),
@@ -150,7 +158,7 @@ class _TaskCardState extends State<TaskCard>
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
-              'Delete',
+              context.l10n.delete,
               style: AppTypography.buttonMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -323,6 +331,23 @@ class _TaskCardState extends State<TaskCard>
                     _confirmAndDelete(context);
                   } else if (value == 'edit' && widget.onEdit != null) {
                     widget.onEdit!();
+                  } else if (value == 'notes') {
+                    TaskNotesBottomSheet.show(
+                      context,
+                      task: widget.task,
+                      date: widget.date,
+                    );
+                  } else if (value == 'add_note') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => NoteEditorScreen(
+                          initialTaskId: widget.task.id,
+                          initialTaskTitle: widget.task.title,
+                          initialDate: widget.date ?? DateTime.now(),
+                          initialIsDateSpecific: widget.date != null,
+                        ),
+                      ),
+                    );
                   } else if (value == 'timer') {
                     if (widget.onStartFocus != null) {
                       widget.onStartFocus!();
@@ -337,6 +362,42 @@ class _TaskCardState extends State<TaskCard>
                 },
                 itemBuilder: (context) => [
                   PopupMenuItem(
+                    value: 'notes',
+                    child: Row(
+                      children: [
+                        Icon(Icons.notes_rounded,
+                            size: 18.r, color: AppColors.accentIndigo),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Task Notes',
+                            style: AppTypography.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'add_note',
+                    child: Row(
+                      children: [
+                        Icon(Icons.note_add_outlined,
+                            size: 18.r, color: AppColors.accentCyan),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Add Note',
+                            style: AppTypography.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
                     value: 'timer',
                     child: Row(
                       children: [
@@ -345,7 +406,7 @@ class _TaskCardState extends State<TaskCard>
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            'Focus Timer',
+                            context.l10n.focusTimer,
                             style: AppTypography.bodyMedium,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -363,7 +424,7 @@ class _TaskCardState extends State<TaskCard>
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            'Edit Task',
+                            context.l10n.editTask,
                             style: AppTypography.bodyMedium,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -381,7 +442,7 @@ class _TaskCardState extends State<TaskCard>
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            'Delete',
+                            context.l10n.delete,
                             style: AppTypography.bodyMedium.copyWith(
                               color: AppColors.error,
                             ),
@@ -424,7 +485,7 @@ class _TaskCardState extends State<TaskCard>
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        widget.category!.name,
+                        widget.category!.localizedName(context),
                         style: AppTypography.caption.copyWith(
                           color: categoryColor,
                           fontWeight: FontWeight.w600,
@@ -455,7 +516,7 @@ class _TaskCardState extends State<TaskCard>
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      widget.task.priority.label,
+                      widget.task.priority.localizedLabel(context),
                       style: AppTypography.caption.copyWith(
                         color: widget.task.priority.color,
                         fontWeight: FontWeight.w600,
@@ -494,7 +555,7 @@ class _TaskCardState extends State<TaskCard>
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        DateTimeFormatter.formatTaskDueDate(widget.task.dueDate),
+                        DateTimeFormatter.formatTaskDueDate(widget.task.dueDate, context),
                         style: AppTypography.caption.copyWith(
                           color: widget.task.isDueToday
                               ? AppColors.primaryLight
@@ -505,6 +566,64 @@ class _TaskCardState extends State<TaskCard>
                     ],
                   ),
                 ),
+
+              // Attached Notes Chip
+              Builder(
+                builder: (context) {
+                  NoteBloc? noteBloc;
+                  try {
+                    noteBloc = context.read<NoteBloc>();
+                  } catch (_) {
+                    noteBloc = null;
+                  }
+                  if (noteBloc == null) return const SizedBox.shrink();
+
+                  return BlocBuilder<NoteBloc, NoteState>(
+                    bloc: noteBloc,
+                    builder: (context, noteState) {
+                      final noteCount = noteState is NoteLoaded
+                          ? noteState.getNotesCountForTask(widget.task.id)
+                          : 0;
+                      if (noteCount == 0) return const SizedBox.shrink();
+
+                      return GestureDetector(
+                        onTap: () => TaskNotesBottomSheet.show(
+                          context,
+                          task: widget.task,
+                          date: widget.date,
+                        ),
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentIndigo.withAlpha(45),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(
+                              color: AppColors.accentIndigo.withAlpha(120),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.notes_rounded,
+                                  size: 11.r, color: AppColors.accentCyan),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '$noteCount ${noteCount == 1 ? "note" : "notes"}',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.accentCyan,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
 
               // Recurrence Tag
               if (widget.task.frequency != TaskFrequency.once)
@@ -523,7 +642,7 @@ class _TaskCardState extends State<TaskCard>
                           size: 11.r, color: AppColors.accentCyan),
                       SizedBox(width: 4.w),
                       Text(
-                        widget.task.frequency.label,
+                        widget.task.frequency.localizedLabel(context),
                         style: AppTypography.caption.copyWith(
                           color: AppColors.accentCyan,
                           fontWeight: FontWeight.w600,
@@ -535,54 +654,134 @@ class _TaskCardState extends State<TaskCard>
 
               // Focus Time Progress Badge & Action
               if (widget.task.isFocusModeEnabled)
-                GestureDetector(
-                  onTap: widget.onStartFocus,
-                  child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withAlpha(60),
-                          AppColors.accentCyan.withAlpha(40),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: AppColors.accentCyan.withAlpha(80),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Builder(
-                      builder: (context) {
-                        final currentPct = widget.task.getProgressPercentFor(widget.date);
-                        final currentSpent = widget.task.getSpentMinutesFor(widget.date);
-                        final currentRatio = widget.task.getProgressPercentageFor(widget.date);
-                        final displayPct = currentPct > 0
-                            ? currentPct
-                            : (currentRatio * 100).round();
+                Builder(
+                  builder: (context) {
+                    FocusBloc? focusBloc;
+                    try {
+                      focusBloc = context.read<FocusBloc>();
+                    } catch (_) {
+                      focusBloc = null;
+                    }
 
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.play_circle_filled_rounded,
-                              size: 13.r,
-                              color: AppColors.accentCyan,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              '$displayPct% • $currentSpent/${widget.task.estimatedMinutes}m',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w700,
+                    Widget buildBadgeContent([FocusState? focusState]) {
+                      final bool isCurrentActive = focusState != null &&
+                          focusState.activeTask?.id == widget.task.id &&
+                          (focusState.isRunning || focusState.isPaused);
+                      final isRunning = focusState?.isRunning ?? false;
+
+                      // If active in FocusBloc, use focusState.activeTask for live spent minutes
+                      final taskToDisplay = isCurrentActive
+                          ? (focusState.activeTask ?? widget.task)
+                          : widget.task;
+
+                      final currentPct = taskToDisplay.getProgressPercentFor(widget.date);
+                      final currentSpent = taskToDisplay.getSpentMinutesFor(widget.date);
+                      final currentRatio = taskToDisplay.getProgressPercentageFor(widget.date);
+                      final displayPct = currentPct > 0
+                          ? currentPct
+                          : (currentRatio * 100).round();
+
+                      if (isCurrentActive) {
+                        final activeColor = isRunning ? AppColors.accentCyan : AppColors.warning;
+                        return GestureDetector(
+                          onTap: () {
+                            if (widget.onStartFocus != null) {
+                              widget.onStartFocus!();
+                            } else {
+                              _startTimerDirect();
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: activeColor.withAlpha(35),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: activeColor.withAlpha(120),
+                                width: 1,
                               ),
+                              boxShadow: isRunning
+                                  ? [
+                                      BoxShadow(
+                                        color: activeColor.withAlpha(70),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ]
+                                  : null,
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isRunning ? Icons.timer_rounded : Icons.pause_circle_filled_rounded,
+                                  size: 13.r,
+                                  color: activeColor,
+                                ),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  '${focusState.formattedTime} • $displayPct% • $currentSpent/${widget.task.estimatedMinutes}m',
+                                  style: AppTypography.caption.copyWith(
+                                    color: activeColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         );
-                      },
-                    ),
-                  ),
+                      }
+
+                      return GestureDetector(
+                        onTap: widget.onStartFocus ?? _startTimerDirect,
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primary.withAlpha(60),
+                                AppColors.accentCyan.withAlpha(40),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(
+                              color: AppColors.accentCyan.withAlpha(80),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.play_circle_filled_rounded,
+                                size: 13.r,
+                                color: AppColors.accentCyan,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '$displayPct% • $currentSpent/${widget.task.estimatedMinutes}m',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (focusBloc == null) {
+                      return buildBadgeContent();
+                    }
+
+                    return BlocBuilder<FocusBloc, FocusState>(
+                      bloc: focusBloc,
+                      builder: (context, focusState) => buildBadgeContent(focusState),
+                    );
+                  },
                 ),
             ],
           ),
@@ -662,7 +861,7 @@ class _TaskCardState extends State<TaskCard>
                                       ),
                                       SizedBox(width: 4.w),
                                       Text(
-                                        'Start',
+                                        context.l10n.start,
                                         style: AppTypography.buttonSmall.copyWith(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w800,

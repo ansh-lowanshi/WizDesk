@@ -21,13 +21,34 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }) : super(SettingsInitial()) {
     on<LoadSettingsEvent>(_onLoadSettings);
     on<UpdateTimerSettingsEvent>(_onUpdateTimerSettings);
-    on<UpdateFontFamilyEvent>(_onUpdateFontFamily);
     on<UpdateThemeModeEvent>(_onUpdateThemeMode);
     on<UpdateDayResetHourEvent>(_onUpdateDayResetHour);
     on<UpdateGoalsEvent>(_onUpdateGoals);
     on<UpdateUserProfileEvent>(_onUpdateUserProfile);
+    on<UpdateLanguageEvent>(_onUpdateLanguage);
     on<ResetSettingsEvent>(_onResetSettings);
     on<ClearAllDataConfirmedEvent>(_onClearAllData);
+  }
+
+  Future<void> _onUpdateLanguage(
+    UpdateLanguageEvent event,
+    Emitter<SettingsState> emit,
+  ) async {
+    final current = state is SettingsLoaded
+        ? (state as SettingsLoaded).preferences
+        : await getSettingsUseCase();
+
+    final updated = current.copyWith(languageCode: event.languageCode);
+
+    try {
+      await saveSettingsUseCase(updated);
+      emit(SettingsLoaded(
+        preferences: updated,
+        successMessage: 'Language updated',
+      ));
+    } catch (e) {
+      emit(SettingsError('Failed to update language: $e'));
+    }
   }
 
   Future<void> _onUpdateThemeMode(
@@ -113,27 +134,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       ));
     } catch (e) {
       emit(SettingsError('Failed to update timer settings: $e'));
-    }
-  }
-
-  Future<void> _onUpdateFontFamily(
-    UpdateFontFamilyEvent event,
-    Emitter<SettingsState> emit,
-  ) async {
-    final current = state is SettingsLoaded
-        ? (state as SettingsLoaded).preferences
-        : await getSettingsUseCase();
-
-    final updated = current.copyWith(fontFamily: event.fontFamily);
-
-    try {
-      await saveSettingsUseCase(updated);
-      emit(SettingsLoaded(
-        preferences: updated,
-        successMessage: 'Font changed to ${event.fontFamily.displayName}',
-      ));
-    } catch (e) {
-      emit(SettingsError('Failed to update font: $e'));
     }
   }
 

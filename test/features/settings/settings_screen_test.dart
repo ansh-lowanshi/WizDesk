@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
+import 'package:wizdesk/core/localization/app_language.dart';
+import 'package:wizdesk/core/localization/app_localizations.dart';
+import 'package:wizdesk/core/localization/bloc/locale_bloc.dart';
 import 'package:wizdesk/core/theme/bloc/theme_bloc.dart';
-import 'package:wizdesk/features/settings/domain/models/app_font_family.dart';
 import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
 import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
 import 'package:wizdesk/features/settings/domain/usecases/clear_all_data_usecase.dart';
@@ -157,10 +160,20 @@ void main() {
             BlocProvider<ThemeBloc>(
               create: (_) => ThemeBloc(settingsRepository: settingsRepo),
             ),
+            BlocProvider<LocaleBloc>(
+              create: (_) => LocaleBloc(settingsRepository: settingsRepo),
+            ),
             BlocProvider<SettingsBloc>.value(value: settingsBloc),
             BlocProvider<TaskBloc>.value(value: taskBloc),
           ],
-          child: const MaterialApp(
+          child: MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLanguage.supportedLocales,
             home: SettingsScreen(),
           ),
         );
@@ -192,36 +205,10 @@ void main() {
     // 3. Verify screen title and section headers
     expect(find.text('Profile & Settings'), findsOneWidget);
     expect(find.text('Creator'), findsOneWidget);
-    expect(find.text('Focus Timer Setup'), findsOneWidget);
-    expect(find.text('Typography & Font'), findsOneWidget);
-    expect(find.text('Day Reset & Rollover'), findsOneWidget);
-    expect(find.text('Productivity Targets'), findsOneWidget);
-    expect(find.text('Data & Preferences'), findsOneWidget);
+    expect(find.text('Timer Customization'), findsOneWidget);
+    expect(find.text('Day Rollover Time'), findsOneWidget);
+    expect(find.text('Daily Targets'), findsOneWidget);
+    expect(find.text('Data Management'), findsOneWidget);
     expect(find.text('Wiz Desk'), findsOneWidget);
-
-    // 4. Test selecting a new font
-    final spaceGroteskOption =
-        find.byKey(const ValueKey('font_option_spaceGrotesk'));
-    expect(spaceGroteskOption, findsOneWidget);
-
-    await tester.ensureVisible(spaceGroteskOption);
-    await tester.pumpAndSettle();
-    await tester.tap(spaceGroteskOption, warnIfMissed: false);
-
-    await tester.runAsync(() async {
-      await settingsBloc.stream.firstWhere(
-        (s) =>
-            s is SettingsLoaded &&
-            s.preferences.fontFamily == AppFontFamily.spaceGrotesk,
-      );
-    });
-
-    await tester.pump();
-
-    expect(settingsBloc.state, isA<SettingsLoaded>());
-    expect(
-      (settingsBloc.state as SettingsLoaded).preferences.fontFamily,
-      AppFontFamily.spaceGrotesk,
-    );
   });
 }

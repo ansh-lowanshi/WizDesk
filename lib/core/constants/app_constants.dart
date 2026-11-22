@@ -11,6 +11,7 @@ class AppConstants {
   static const String categoryBoxName = 'wizdesk_categories_box';
   static const String sessionBoxName = 'wizdesk_focus_sessions_box';
   static const String userPreferencesBoxName = 'wizdesk_preferences_box';
+  static const String noteBoxName = 'wizdesk_notes_box';
 
   // Storage Keys
   static const String keyUserDisplayName = 'pref_user_name';

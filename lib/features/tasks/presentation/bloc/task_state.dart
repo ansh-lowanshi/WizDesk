@@ -48,13 +48,13 @@ class TaskLoaded extends TaskState {
   int get totalTasksCount => allTasks.length;
 
   int get completedTasksCount =>
-      allTasks.where((t) => t.status == TaskStatus.completed).length;
+      allTasks.where((t) => t.isCompleted).length;
 
   int get pendingTasksCount =>
-      allTasks.where((t) => t.status == TaskStatus.todo).length;
+      allTasks.where((t) => !t.isCompleted && t.status == TaskStatus.todo).length;
 
   int get inProgressTasksCount =>
-      allTasks.where((t) => t.status == TaskStatus.inProgress).length;
+      allTasks.where((t) => !t.isCompleted && t.status == TaskStatus.inProgress).length;
 
   int get todayTasksCount => allTasks.where((t) => t.isDueToday).length;
 
@@ -66,8 +66,10 @@ class TaskLoaded extends TaskState {
     return todayTasks.where((t) => t.isCompletedOn(now)).length;
   }
 
-  int get todayFocusMinutes =>
-      todayTasks.fold<int>(0, (sum, t) => sum + t.spentMinutes);
+  int get todayFocusMinutes {
+    final now = DateTime.now();
+    return todayTasks.fold<int>(0, (sum, t) => sum + t.getSpentMinutesFor(now));
+  }
 
   double get completionRatePercentage {
     if (allTasks.isEmpty) return 0.0;

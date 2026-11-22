@@ -23,8 +23,7 @@ class AppIconHelper {
       case 0xe318:
         return Icons.lightbulb_outline_rounded;
       default:
-        // ignore: non_const_argument_for_const_parameter
-        return IconData(iconCode, fontFamily: 'MaterialIcons');
+        return Icons.category_rounded;
     }
   }
 }

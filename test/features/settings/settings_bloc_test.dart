@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wizdesk/features/settings/domain/models/app_font_family.dart';
 import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
 import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
 import 'package:wizdesk/features/settings/domain/usecases/clear_all_data_usecase.dart';
@@ -106,24 +105,6 @@ void main() {
               .having((s) => s.preferences.workDurationMinutes, 'workDuration', 45)
               .having((s) => s.preferences.shortBreakMinutes, 'shortBreak', 10)
               .having((s) => s.preferences.autoStartBreaks, 'autoStartBreaks', true),
-        ),
-      );
-    });
-
-    test('UpdateFontFamilyEvent switches font family correctly', () async {
-      settingsBloc.add(const LoadSettingsEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
-
-      settingsBloc.add(const UpdateFontFamilyEvent(AppFontFamily.spaceGrotesk));
-
-      await expectLater(
-        settingsBloc.stream,
-        emits(
-          isA<SettingsLoaded>().having(
-            (s) => s.preferences.fontFamily,
-            'fontFamily',
-            AppFontFamily.spaceGrotesk,
-          ),
         ),
       );
     });

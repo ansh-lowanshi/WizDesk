@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/bloc/theme_bloc.dart';
-import '../../../../core/theme/bloc/theme_event.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../tasks/presentation/bloc/task_bloc.dart';
@@ -18,8 +17,8 @@ import '../bloc/settings_state.dart';
 import '../widgets/about_app_section.dart';
 import '../widgets/data_management_section.dart';
 import '../widgets/day_reset_section.dart';
-import '../widgets/font_switcher_section.dart';
 import '../widgets/goals_settings_section.dart';
+import '../widgets/language_selector_section.dart';
 import '../widgets/profile_hero_card.dart';
 import '../widgets/timer_settings_section.dart';
 
@@ -45,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     BuildContext context,
     UserPreferencesModel preferences,
   ) {
+    final l10n = context.l10n;
     final nameController = TextEditingController(text: preferences.userName);
     final titleController = TextEditingController(text: preferences.userTitle);
 
@@ -55,31 +55,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18.r),
         ),
-        title: Text('Edit Profile', style: AppTypography.heading3),
+        title: Text(l10n.editProfile, style: AppTypography.heading3),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Display Name', style: AppTypography.titleSmall),
+            Text(l10n.displayName, style: AppTypography.titleSmall),
             SizedBox(height: 6.h),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                hintText: 'Enter your name',
-                prefixIcon: Icon(
+              decoration: InputDecoration(
+                hintText: l10n.displayName,
+                prefixIcon: const Icon(
                   Icons.person_outline_rounded,
                   color: AppColors.accentCyan,
                 ),
               ),
             ),
             SizedBox(height: 14.h),
-            Text('Title / Role', style: AppTypography.titleSmall),
+            Text(l10n.titleRole, style: AppTypography.titleSmall),
             SizedBox(height: 6.h),
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Creator, Lead Developer',
-                prefixIcon: Icon(
+              decoration: InputDecoration(
+                hintText: l10n.titleRole,
+                prefixIcon: const Icon(
                   Icons.badge_outlined,
                   color: AppColors.accentCyan,
                 ),
@@ -91,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
-              'Cancel',
+              l10n.cancel,
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textMuted,
               ),
@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
               Navigator.of(ctx).pop();
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -123,6 +123,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -138,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
-        title: Text('Profile & Settings', style: AppTypography.heading3),
+        title: Text(l10n.settingsAndProfile, style: AppTypography.heading3),
       ),
       body: SafeArea(
         child: ResponsiveWrapper(
@@ -146,7 +148,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: BlocConsumer<SettingsBloc, SettingsState>(
             listener: (context, state) {
               if (state is SettingsLoaded) {
-                AppTypography.currentFontFamily = state.preferences.fontFamily;
                 if (state.successMessage != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -205,7 +206,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         SizedBox(height: 20.h),
 
-                        // 2. Timer Customization Section
+                        // 2. Language Selector Section
+                        const LanguageSelectorSection(),
+
+                        SizedBox(height: 20.h),
+
+                        // 3. Timer Customization Section
                         TimerSettingsSection(
                           preferences: preferences,
                           onChanged: (updated) {
@@ -239,22 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         // ),
                         SizedBox(height: 20.h),
 
-                        // 4. Dynamic Font Switcher Section
-                        FontSwitcherSection(
-                          selectedFont: preferences.fontFamily,
-                          onFontSelected: (font) {
-                            context.read<ThemeBloc>().add(
-                              SetFontFamilyEvent(font),
-                            );
-                            context.read<SettingsBloc>().add(
-                              UpdateFontFamilyEvent(font),
-                            );
-                          },
-                        ),
-
-                        SizedBox(height: 20.h),
-
-                        // 5. Day Rollover / Reset Time Section
+                        // 4. Day Rollover / Reset Time Section
                         DayResetSection(
                           selectedResetHour: preferences.dayResetHour,
                           onResetHourSelected: (hour) {
@@ -266,7 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         SizedBox(height: 20.h),
 
-                        // 6. Productivity Targets Section
+                        // 5. Productivity Targets Section
                         GoalsSettingsSection(
                           preferences: preferences,
                           onChanged: (updated) {
@@ -282,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         SizedBox(height: 20.h),
 
-                        // 7. Category Management
+                        // 6. Category Management
                         GlassmorphicCard(
                           padding: EdgeInsets.symmetric(
                             horizontal: 16.w,
@@ -318,7 +309,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Task Categories',
+                                        l10n.taskCategories,
                                         style: AppTypography.titleSmall
                                             .copyWith(
                                               color: Colors.white,
@@ -327,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                       SizedBox(height: 2.h),
                                       Text(
-                                        'Add, customize, or delete categories',
+                                        l10n.taskCategoriesSubtitle,
                                         style: AppTypography.caption.copyWith(
                                           color: AppColors.textMuted,
                                         ),
@@ -347,7 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         SizedBox(height: 20.h),
 
-                        // 6. Data Management & Danger Zone
+                        // 7. Data Management & Danger Zone
                         DataManagementSection(
                           onResetSettings: () {
                             context.read<SettingsBloc>().add(
@@ -367,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         SizedBox(height: 20.h),
 
-                        // 6. About App Section
+                        // 8. About App Section
                         const AboutAppSection(),
 
                         SizedBox(height: 90.h),

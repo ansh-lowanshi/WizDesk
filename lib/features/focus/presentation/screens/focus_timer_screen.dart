@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -24,10 +26,7 @@ import 'fullscreen_timer_screen.dart';
 class FocusTimerScreen extends StatefulWidget {
   final TaskEntity? initialTask;
 
-  const FocusTimerScreen({
-    super.key,
-    this.initialTask,
-  });
+  const FocusTimerScreen({super.key, this.initialTask});
 
   @override
   State<FocusTimerScreen> createState() => _FocusTimerScreenState();
@@ -40,11 +39,16 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   void initState() {
     super.initState();
     if (widget.initialTask != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<FocusBloc>().add(
-              SetActiveTaskEvent(widget.initialTask),
-            );
-      });
+      context.read<FocusBloc>().add(SetActiveTaskEvent(widget.initialTask));
+    }
+  }
+
+  @override
+  void didUpdateWidget(FocusTimerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTask != null &&
+        widget.initialTask?.id != oldWidget.initialTask?.id) {
+      context.read<FocusBloc>().add(SetActiveTaskEvent(widget.initialTask));
     }
   }
 
@@ -71,11 +75,16 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Select Task to Focus',
-                          style: AppTypography.heading3),
+                      Text(
+                        context.l10n.selectTaskToFocus,
+                        style: AppTypography.heading3,
+                      ),
                       IconButton(
-                        icon: Icon(Icons.close_rounded,
-                            size: 20.r, color: AppColors.textSecondary),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 20.r,
+                          color: AppColors.textSecondary,
+                        ),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),
                     ],
@@ -86,7 +95,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       padding: EdgeInsets.symmetric(vertical: 24.h),
                       child: Center(
                         child: Text(
-                          'No pending tasks available.\nCreate one from Home dashboard!',
+                          context.l10n.noPendingTasks,
                           textAlign: TextAlign.center,
                           style: AppTypography.bodySmall,
                         ),
@@ -97,7 +106,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: tasks.length,
-                        separatorBuilder: (context, index) => SizedBox(height: 8.h),
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 8.h),
                         itemBuilder: (context, index) {
                           final task = tasks[index];
                           return ListTile(
@@ -105,21 +115,29 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.r),
                               side: BorderSide(
-                                  color: AppColors.border, width: 0.8),
+                                color: AppColors.border,
+                                width: 0.8,
+                              ),
                             ),
-                            title: Text(task.title,
-                                style: AppTypography.titleSmall
-                                    .copyWith(color: AppColors.textPrimary)),
+                            title: Text(
+                              task.title,
+                              style: AppTypography.titleSmall.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                             subtitle: Text(
-                              '${task.estimatedMinutes} min estimated • ${task.priority.label} priority',
+                              '${task.estimatedMinutes} ${context.l10n.minUnit} • ${task.priority.label}',
                               style: AppTypography.caption,
                             ),
-                            trailing: Icon(Icons.play_circle_filled_rounded,
-                                color: AppColors.accentCyan, size: 24.r),
+                            trailing: Icon(
+                              Icons.play_circle_filled_rounded,
+                              color: AppColors.accentCyan,
+                              size: 24.r,
+                            ),
                             onTap: () {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(SetActiveTaskEvent(task));
+                              context.read<FocusBloc>().add(
+                                SetActiveTaskEvent(task),
+                              );
                               Navigator.of(ctx).pop();
                             },
                           );
@@ -134,14 +152,18 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       borderRadius: BorderRadius.circular(12.r),
                       side: BorderSide(color: AppColors.border),
                     ),
-                    leading: Icon(Icons.close_rounded,
-                        color: AppColors.textMuted),
-                    title: Text('Continue without specific task',
-                        style: AppTypography.bodyMedium),
+                    leading: Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textMuted,
+                    ),
+                    title: Text(
+                      context.l10n.continueWithoutTask,
+                      style: AppTypography.bodyMedium,
+                    ),
                     onTap: () {
-                      context
-                          .read<FocusBloc>()
-                          .add(const SetActiveTaskEvent(null));
+                      context.read<FocusBloc>().add(
+                        const SetActiveTaskEvent(null),
+                      );
                       Navigator.of(ctx).pop();
                     },
                   ),
@@ -154,7 +176,10 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     );
   }
 
-  Future<void> _showTaskProgressSheet(BuildContext context, TaskEntity task) async {
+  Future<void> _showTaskProgressSheet(
+    BuildContext context,
+    TaskEntity task,
+  ) async {
     final today = DateTime.now();
     int currentSpent = task.getSpentMinutesFor(today);
     int currentEstimated = task.estimatedMinutes;
@@ -171,11 +196,13 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (dialogCtx, setSheetState) {
-            final isDone = currentStatus == TaskStatus.completed || currentPercent >= 100;
+            final isDone =
+                currentStatus == TaskStatus.completed || currentPercent >= 100;
 
             Future<void> promptPercentDialog() async {
-              final textController =
-                  TextEditingController(text: currentPercent.toString());
+              final textController = TextEditingController(
+                text: currentPercent.toString(),
+              );
               final result = await showDialog<int>(
                 context: dialogCtx,
                 builder: (numCtx) => AlertDialog(
@@ -186,11 +213,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   ),
                   title: Row(
                     children: [
-                      Icon(Icons.edit_note_rounded,
-                          color: AppColors.accentCyan, size: 22.r),
+                      Icon(
+                        Icons.edit_note_rounded,
+                        color: AppColors.accentCyan,
+                        size: 22.r,
+                      ),
                       SizedBox(width: 8.w),
                       Text(
-                        'Set Progress (0 - 100%)',
+                        context.l10n.setProgress,
                         style: AppTypography.heading3.copyWith(fontSize: 16.sp),
                       ),
                     ],
@@ -200,9 +230,10 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Enter exact progress percentage:',
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.textMuted),
+                        context.l10n.enterProgressPrompt,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                       SizedBox(height: 12.h),
                       TextField(
@@ -227,7 +258,10 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(numCtx).pop(),
-                      child: Text('Cancel', style: AppTypography.buttonMedium),
+                      child: Text(
+                        context.l10n.cancel,
+                        style: AppTypography.buttonMedium,
+                      ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -317,7 +351,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             children: [
                               Text(
                                 'Update Task Progress',
-                                style: AppTypography.heading3.copyWith(fontSize: 17.sp),
+                                style: AppTypography.heading3.copyWith(
+                                  fontSize: 17.sp,
+                                ),
                               ),
                               SizedBox(height: 2.h),
                               Text(
@@ -332,8 +368,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close_rounded,
-                              size: 20.r, color: AppColors.textMuted),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 20.r,
+                            color: AppColors.textMuted,
+                          ),
                           onPressed: () => Navigator.of(dialogCtx).pop(),
                         ),
                       ],
@@ -375,14 +414,18 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                     vertical: 3.h,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: (isDone ? AppColors.success : AppColors.accentCyan)
-                                        .withAlpha(40),
+                                    color:
+                                        (isDone
+                                                ? AppColors.success
+                                                : AppColors.accentCyan)
+                                            .withAlpha(40),
                                     borderRadius: BorderRadius.circular(10.r),
                                     border: Border.all(
-                                      color: (isDone
-                                              ? AppColors.success
-                                              : AppColors.accentCyan)
-                                          .withAlpha(120),
+                                      color:
+                                          (isDone
+                                                  ? AppColors.success
+                                                  : AppColors.accentCyan)
+                                              .withAlpha(120),
                                       width: 1,
                                     ),
                                   ),
@@ -391,13 +434,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                     children: [
                                       Text(
                                         '$currentPercent%',
-                                        style: AppTypography.titleSmall.copyWith(
-                                          color: isDone
-                                              ? AppColors.success
-                                              : AppColors.accentCyan,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15.sp,
-                                        ),
+                                        style: AppTypography.titleSmall
+                                            .copyWith(
+                                              color: isDone
+                                                  ? AppColors.success
+                                                  : AppColors.accentCyan,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15.sp,
+                                            ),
                                       ),
                                       SizedBox(width: 4.w),
                                       Icon(
@@ -451,9 +495,12 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                         setSheetState(() {
                                           currentPercent++;
                                           if (currentPercent >= 100) {
-                                            currentStatus = TaskStatus.completed;
-                                          } else if (currentStatus == TaskStatus.todo) {
-                                            currentStatus = TaskStatus.inProgress;
+                                            currentStatus =
+                                                TaskStatus.completed;
+                                          } else if (currentStatus ==
+                                              TaskStatus.todo) {
+                                            currentStatus =
+                                                TaskStatus.inProgress;
                                           }
                                         });
                                       }
@@ -465,14 +512,18 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           // Slider to interactively adjust percentage (1% precision)
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor:
-                                  isDone ? AppColors.success : AppColors.accentCyan,
+                              activeTrackColor: isDone
+                                  ? AppColors.success
+                                  : AppColors.accentCyan,
                               inactiveTrackColor: AppColors.surfaceElevated,
-                              thumbColor: isDone ? AppColors.success : AppColors.accentCyan,
-                              overlayColor: (isDone
-                                      ? AppColors.success
-                                      : AppColors.accentCyan)
-                                  .withAlpha(40),
+                              thumbColor: isDone
+                                  ? AppColors.success
+                                  : AppColors.accentCyan,
+                              overlayColor:
+                                  (isDone
+                                          ? AppColors.success
+                                          : AppColors.accentCyan)
+                                      .withAlpha(40),
                               trackHeight: 6.h,
                             ),
                             child: Slider(
@@ -486,7 +537,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   currentPercent = newVal;
                                   if (newVal >= 100) {
                                     currentStatus = TaskStatus.completed;
-                                  } else if (newVal > 0 && currentStatus == TaskStatus.todo) {
+                                  } else if (newVal > 0 &&
+                                      currentStatus == TaskStatus.todo) {
                                     currentStatus = TaskStatus.inProgress;
                                   } else if (newVal == 0) {
                                     currentStatus = TaskStatus.todo;
@@ -507,7 +559,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                     currentPercent = pct;
                                     if (pct >= 100) {
                                       currentStatus = TaskStatus.completed;
-                                    } else if (pct > 0 && currentStatus == TaskStatus.todo) {
+                                    } else if (pct > 0 &&
+                                        currentStatus == TaskStatus.todo) {
                                       currentStatus = TaskStatus.inProgress;
                                     } else if (pct == 0) {
                                       currentStatus = TaskStatus.todo;
@@ -522,16 +575,16 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? (pct == 100
-                                                ? AppColors.success
-                                                : AppColors.accentCyan)
-                                            .withAlpha(50)
+                                                  ? AppColors.success
+                                                  : AppColors.accentCyan)
+                                              .withAlpha(50)
                                         : AppColors.surfaceElevated,
                                     borderRadius: BorderRadius.circular(8.r),
                                     border: Border.all(
                                       color: isSelected
                                           ? (pct == 100
-                                              ? AppColors.success
-                                              : AppColors.accentCyan)
+                                                ? AppColors.success
+                                                : AppColors.accentCyan)
                                           : AppColors.border,
                                       width: isSelected ? 1.5 : 0.8,
                                     ),
@@ -565,65 +618,72 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                     ),
                     SizedBox(height: 8.h),
                     Row(
-                      children: [
-                        TaskStatus.todo,
-                        TaskStatus.inProgress,
-                        TaskStatus.completed,
-                      ].map((status) {
-                        final isSelected = currentStatus == status;
-                        Color statusColor;
-                        switch (status) {
-                          case TaskStatus.completed:
-                            statusColor = AppColors.success;
-                            break;
-                          case TaskStatus.inProgress:
-                            statusColor = AppColors.accentCyan;
-                            break;
-                          case TaskStatus.todo:
-                          default:
-                            statusColor = AppColors.textSecondary;
-                            break;
-                        }
+                      children:
+                          [
+                            TaskStatus.todo,
+                            TaskStatus.inProgress,
+                            TaskStatus.completed,
+                          ].map((status) {
+                            final isSelected = currentStatus == status;
+                            Color statusColor;
+                            switch (status) {
+                              case TaskStatus.completed:
+                                statusColor = AppColors.success;
+                                break;
+                              case TaskStatus.inProgress:
+                                statusColor = AppColors.accentCyan;
+                                break;
+                              case TaskStatus.todo:
+                              default:
+                                statusColor = AppColors.textSecondary;
+                                break;
+                            }
 
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setSheetState(() {
-                                currentStatus = status;
-                                if (status == TaskStatus.completed) {
-                                  currentPercent = 100;
-                                } else if (status == TaskStatus.todo && currentPercent == 100) {
-                                  currentPercent = 0;
-                                }
-                              });
-                            },
-                            child: Container(
-                              margin: EdgeInsets.symmetric(horizontal: 4.w),
-                              padding: EdgeInsets.symmetric(vertical: 9.h),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? statusColor.withAlpha(40)
-                                    : AppColors.surface,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: isSelected ? statusColor : AppColors.border,
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  status.label,
-                                  style: AppTypography.badge.copyWith(
-                                    color: isSelected ? Colors.white : AppColors.textMuted,
-                                    fontWeight:
-                                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setSheetState(() {
+                                    currentStatus = status;
+                                    if (status == TaskStatus.completed) {
+                                      currentPercent = 100;
+                                    } else if (status == TaskStatus.todo &&
+                                        currentPercent == 100) {
+                                      currentPercent = 0;
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                  padding: EdgeInsets.symmetric(vertical: 9.h),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? statusColor.withAlpha(40)
+                                        : AppColors.surface,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? statusColor
+                                          : AppColors.border,
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      status.label,
+                                      style: AppTypography.badge.copyWith(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppColors.textMuted,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
                     ),
 
                     SizedBox(height: 18.h),
@@ -662,8 +722,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   side: BorderSide(color: AppColors.border),
                                 ),
                               ),
-                              icon: Icon(Icons.remove_rounded,
-                                  size: 18.r, color: AppColors.textPrimary),
+                              icon: Icon(
+                                Icons.remove_rounded,
+                                size: 18.r,
+                                color: AppColors.textPrimary,
+                              ),
                               onPressed: currentSpent >= 5
                                   ? () {
                                       setSheetState(() {
@@ -680,8 +743,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
                               ),
-                              icon: Icon(Icons.add_rounded,
-                                  size: 18.r, color: AppColors.textPrimary),
+                              icon: Icon(
+                                Icons.add_rounded,
+                                size: 18.r,
+                                color: AppColors.textPrimary,
+                              ),
                               onPressed: () {
                                 setSheetState(() {
                                   currentSpent += 5;
@@ -703,7 +769,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ESTIMATED TARGET',
+                              'TOTAL DAILY TARGET',
                               style: AppTypography.captionBold.copyWith(
                                 color: AppColors.textSecondary,
                                 letterSpacing: 0.8,
@@ -711,7 +777,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             ),
                             SizedBox(height: 2.h),
                             Text(
-                              '$currentEstimated minutes total',
+                              '$currentEstimated minutes daily goal',
                               style: AppTypography.titleSmall.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -729,8 +795,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   side: BorderSide(color: AppColors.border),
                                 ),
                               ),
-                              icon: Icon(Icons.remove_rounded,
-                                  size: 18.r, color: AppColors.textPrimary),
+                              icon: Icon(
+                                Icons.remove_rounded,
+                                size: 18.r,
+                                color: AppColors.textPrimary,
+                              ),
                               onPressed: currentEstimated >= 10
                                   ? () {
                                       setSheetState(() {
@@ -747,8 +816,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
                               ),
-                              icon: Icon(Icons.add_rounded,
-                                  size: 18.r, color: AppColors.textPrimary),
+                              icon: Icon(
+                                Icons.add_rounded,
+                                size: 18.r,
+                                color: AppColors.textPrimary,
+                              ),
                               onPressed: () {
                                 setSheetState(() {
                                   currentEstimated += 5;
@@ -768,7 +840,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       height: 48.h,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                           backgroundColor: AppColors.accentCyan,
+                          backgroundColor: AppColors.accentCyan,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14.r),
                           ),
@@ -776,14 +848,18 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                         ),
                         onPressed: () {
                           final dateKey = TaskEntity.formatDateKey(today);
-                          final updatedDailyProgress =
-                              Map<String, int>.from(task.dailyProgress);
-                          final updatedDailySpent =
-                              Map<String, int>.from(task.dailySpentMinutes);
-                          final updatedCompletedDates =
-                              List<String>.from(task.completedDates);
+                          final updatedDailyProgress = Map<String, int>.from(
+                            task.dailyProgress,
+                          );
+                          final updatedDailySpent = Map<String, int>.from(
+                            task.dailySpentMinutes,
+                          );
+                          final updatedCompletedDates = List<String>.from(
+                            task.completedDates,
+                          );
 
-                          if (task.progressMode == TaskProgressMode.individual &&
+                          if (task.progressMode ==
+                                  TaskProgressMode.individual &&
                               task.frequency != TaskFrequency.once) {
                             updatedDailyProgress[dateKey] = currentPercent;
                             updatedDailySpent[dateKey] = currentSpent;
@@ -798,13 +874,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
 
                           final updatedTask = task.copyWith(
                             status: currentStatus,
-                            spentMinutes: task.progressMode ==
+                            spentMinutes:
+                                task.progressMode ==
                                         TaskProgressMode.cumulative ||
                                     task.frequency == TaskFrequency.once
                                 ? currentSpent
                                 : task.spentMinutes,
                             estimatedMinutes: currentEstimated,
-                            progressPercent: task.progressMode ==
+                            progressPercent:
+                                task.progressMode ==
                                         TaskProgressMode.cumulative ||
                                     task.frequency == TaskFrequency.once
                                 ? currentPercent
@@ -818,10 +896,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           );
 
                           // 1. Update in TaskBloc
-                          context.read<TaskBloc>().add(UpdateTaskEvent(updatedTask));
+                          context.read<TaskBloc>().add(
+                            UpdateTaskEvent(updatedTask),
+                          );
 
                           // 2. Keep FocusBloc synced with updated task
-                          context.read<FocusBloc>().add(SetActiveTaskEvent(updatedTask));
+                          context.read<FocusBloc>().add(
+                            SetActiveTaskEvent(updatedTask),
+                          );
 
                           Navigator.of(dialogCtx).pop();
 
@@ -832,13 +914,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                     ? '🎉 Great job! "${task.title}" marked completed ($currentPercent%).'
                                     : 'Progress updated to $currentPercent% for "${task.title}".',
                               ),
-                              backgroundColor: isDone ? AppColors.success : AppColors.surfaceElevated,
+                              backgroundColor: isDone
+                                  ? AppColors.success
+                                  : AppColors.surfaceElevated,
                               duration: const Duration(seconds: 2),
                             ),
                           );
                         },
                         child: Text(
-                          'Save Progress',
+                          context.l10n.saveProgress,
                           style: AppTypography.buttonMedium.copyWith(
                             color: Colors.black,
                             fontWeight: FontWeight.w800,
@@ -857,21 +941,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   }
 
   Future<void> _openFullscreenMode() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FullscreenTimerScreen(),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FullscreenTimerScreen()));
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
     );
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.background,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
@@ -882,11 +966,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text('Focus Timer', style: AppTypography.heading3),
+        title: Text(context.l10n.focusTimer, style: AppTypography.heading3),
         actions: [
           IconButton(
-            icon: Icon(Icons.fullscreen_rounded,
-                size: 24.r, color: AppColors.accentCyan),
+            icon: Icon(
+              Icons.fullscreen_rounded,
+              size: 24.r,
+              color: AppColors.accentCyan,
+            ),
             tooltip: 'Immersive Fullscreen Mode',
             onPressed: _openFullscreenMode,
           ),
@@ -901,13 +988,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 previous.status != current.status &&
                 current.status == TimerStatus.completed,
             listener: (context, state) {
-              if (state.activeTask != null) {
-                // Prompt user to update task progress after every completed session
-                _showTaskProgressSheet(context, state.activeTask!);
-              }
+              // Stay on focus screen, do not pop up modal
+              HapticFeedback.heavyImpact();
             },
             builder: (context, state) {
-              final modeColor = state.mode.color;
+              final now = DateTime.now();
+              final task = state.activeTask;
+              final bool isTaskDone = task != null &&
+                  (task.isCompletedOn(now) ||
+                      (task.estimatedMinutes > 0 &&
+                          task.getSpentMinutesFor(now) >=
+                              task.estimatedMinutes));
+
+              final modeColor = state.isCompleted
+                  ? (isTaskDone ? AppColors.success : AppColors.accentCyan)
+                  : state.mode.color;
               final isRunning = state.isRunning;
 
               return SingleChildScrollView(
@@ -915,6 +1010,155 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // Task / Cycle Celebration Banner
+                    if (isTaskDone) ...[
+                      Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withAlpha(30),
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: AppColors.success.withAlpha(120),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.success.withAlpha(40),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(8.r),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withAlpha(50),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check_circle_rounded,
+                                color: AppColors.success,
+                                size: 22.r,
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Task Completed! 🎉',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    'Daily target (${task.estimatedMinutes}m) reached. You can continue focusing.',
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (state.isCompleted) ...[
+                      Builder(
+                        builder: (context) {
+                          final int cycleMinutes = (task != null && task.pomodoroWorkMinutes > 0)
+                              ? task.pomodoroWorkMinutes
+                              : 25;
+                          final int totalTargetCycles = (task != null && task.estimatedMinutes > 0)
+                              ? math.max(1, (task.estimatedMinutes / cycleMinutes).ceil())
+                              : 4;
+                          final int remainingMins = task != null
+                              ? task.getRemainingMinutesFor(now)
+                              : 0;
+
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 12.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentCyan.withAlpha(30),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: AppColors.accentCyan.withAlpha(120),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accentCyan.withAlpha(40),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(8.r),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentCyan.withAlpha(50),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.hourglass_bottom_rounded,
+                                    color: AppColors.accentCyan,
+                                    size: 22.r,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        task != null
+                                            ? 'Cycle ${state.completedCycles} of $totalTargetCycles Completed! 👏'
+                                            : 'Session Completed! 👏',
+                                        style: AppTypography.titleMedium
+                                            .copyWith(
+                                              color: AppColors.accentCyan,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14.sp,
+                                            ),
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        task != null
+                                            ? '${remainingMins}m remaining to reach daily goal. Take a break or start next cycle.'
+                                            : 'Great focus session. Take a break or start your next session.',
+                                        style: AppTypography.caption.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 11.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+
                     // Mode Selector Tabs (Deep Focus / Short Break / Long Break)
                     Container(
                       padding: EdgeInsets.all(4.r),
@@ -932,8 +1176,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
                                 context.read<FocusBloc>().add(
-                                      SwitchPomodoroModeEvent(mode: mode),
-                                    );
+                                  SwitchPomodoroModeEvent(mode: mode),
+                                );
                               },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
@@ -957,20 +1201,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 4.w),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 4.w,
+                                    ),
                                     child: Text(
-                                      mode.label,
-                                      style:
-                                          AppTypography.buttonMedium.copyWith(
-                                        color: isSelected
-                                            ? AppColors.background
-                                            : AppColors.textSecondary,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w800
-                                            : FontWeight.w500,
-                                        fontSize: 12.sp,
-                                      ),
+                                      mode.localizedLabel(context),
+                                      style: AppTypography.buttonMedium
+                                          .copyWith(
+                                            color: isSelected
+                                                ? AppColors.background
+                                                : AppColors.textSecondary,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w800
+                                                : FontWeight.w500,
+                                            fontSize: 12.sp,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -987,8 +1232,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                     BlocBuilder<TaskBloc, TaskState>(
                       builder: (context, taskState) {
                         final task = state.activeTask;
-                        final category = (task != null &&
-                                taskState is TaskLoaded)
+                        final category =
+                            (task != null && taskState is TaskLoaded)
                             ? taskState.getCategoryById(task.categoryId)
                             : null;
 
@@ -996,7 +1241,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           onTap: () => _openTaskSelectorBottomSheet(context),
                           child: GlassmorphicCard(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 16.w, vertical: 12.h),
+                              horizontal: 16.w,
+                              vertical: 12.h,
+                            ),
                             borderColor: task != null
                                 ? AppColors.accentCyan.withAlpha(90)
                                 : AppColors.border,
@@ -1013,9 +1260,10 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                   child: Icon(
                                     task != null
                                         ? (category != null
-                                            ? AppIconHelper.getCategoryIcon(
-                                                category.iconCode)
-                                            : Icons.task_alt_rounded)
+                                              ? AppIconHelper.getCategoryIcon(
+                                                  category.iconCode,
+                                                )
+                                              : Icons.task_alt_rounded)
                                         : Icons.link_rounded,
                                     size: 18.r,
                                     color: task != null
@@ -1032,36 +1280,122 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                       Text(
                                         task != null
                                             ? task.title
-                                            : 'Free Focus Session',
+                                            : context.l10n.freeFocusSession,
                                         style: AppTypography.titleSmall
-                                            .copyWith(color: AppColors.textPrimary),
+                                            .copyWith(
+                                              color: AppColors.textPrimary,
+                                            ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       SizedBox(height: 2.h),
-                                      Text(
-                                        task != null
-                                            ? '${(task.progressPercentage * 100).round()}% completed • ${task.spentMinutes}m / ${task.estimatedMinutes}m'
-                                            : 'Tap to link a task from your list',
-                                        style: AppTypography.caption,
+                                      Builder(
+                                        builder: (context) {
+                                          if (task == null) {
+                                            return Text(
+                                              context.l10n.tapToLinkTask,
+                                              style: AppTypography.caption,
+                                            );
+                                          }
+                                          final now = DateTime.now();
+                                          final isTaskDone =
+                                              task.isCompletedOn(now) ||
+                                              (task.estimatedMinutes > 0 &&
+                                                  task.getSpentMinutesFor(now) >=
+                                                      task.estimatedMinutes);
+                                          final currentPct = task
+                                              .getProgressPercentFor(now);
+                                          final currentSpent = task
+                                              .getSpentMinutesFor(now);
+                                          final currentRatio = task
+                                              .getProgressPercentageFor(now);
+                                          final displayPct = isTaskDone
+                                              ? 100
+                                              : (currentPct > 0
+                                                    ? currentPct
+                                                    : (currentRatio * 100)
+                                                          .round());
+
+                                          return Text(
+                                            isTaskDone
+                                                ? '100% Done • ${currentSpent}m / ${task.estimatedMinutes}m'
+                                                : '$displayPct% ${context.l10n.completed} • ${currentSpent}m / ${task.estimatedMinutes}m',
+                                            style: AppTypography.caption
+                                                .copyWith(
+                                                  color: isTaskDone
+                                                      ? AppColors.success
+                                                      : AppColors.textSecondary,
+                                                  fontWeight: isTaskDone
+                                                      ? FontWeight.w600
+                                                      : FontWeight.w400,
+                                                ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
                                 ),
-                                 if (task != null) ...[
+                                if (task != null) ...[
+                                  if (isTaskDone) ...[
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.w,
+                                        vertical: 4.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success.withAlpha(35),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.success.withAlpha(
+                                            120,
+                                          ),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.check_rounded,
+                                            size: 13.r,
+                                            color: AppColors.success,
+                                          ),
+                                          SizedBox(width: 4.w),
+                                          Text(
+                                            'Done',
+                                            style: AppTypography.captionBold
+                                                .copyWith(
+                                                  color: AppColors.success,
+                                                  fontSize: 10.sp,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: 6.w),
+                                  ],
                                   GestureDetector(
                                     behavior: HitTestBehavior.opaque,
-                                    onTap: () => _showTaskProgressSheet(context, task),
+                                    onTap: () =>
+                                        _showTaskProgressSheet(context, task),
                                     child: Container(
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 8.w,
                                         vertical: 5.h,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: AppColors.accentCyan.withAlpha(30),
-                                        borderRadius: BorderRadius.circular(8.r),
+                                        color: AppColors.accentCyan.withAlpha(
+                                          30,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
                                         border: Border.all(
-                                          color: AppColors.accentCyan.withAlpha(90),
+                                          color: AppColors.accentCyan.withAlpha(
+                                            90,
+                                          ),
                                           width: 0.8,
                                         ),
                                       ),
@@ -1075,19 +1409,23 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                           ),
                                           SizedBox(width: 4.w),
                                           Text(
-                                            'Progress',
-                                            style: AppTypography.captionBold.copyWith(
-                                              color: AppColors.accentCyan,
-                                              fontSize: 10.sp,
-                                            ),
+                                            context.l10n.progress,
+                                            style: AppTypography.captionBold
+                                                .copyWith(
+                                                  color: AppColors.accentCyan,
+                                                  fontSize: 10.sp,
+                                                ),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
                                 ] else
-                                  Icon(Icons.arrow_forward_ios_rounded,
-                                      size: 14.r, color: AppColors.textMuted),
+                                  Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 14.r,
+                                    color: AppColors.textMuted,
+                                  ),
                               ],
                             ),
                           ),
@@ -1095,7 +1433,173 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       },
                     ),
 
-                    SizedBox(height: 28.h),
+                    // Option to choose Pomodoro Session vs Total Daily Time
+                    if (state.activeTask != null) ...[
+                      SizedBox(height: 10.h),
+                      Builder(
+                        builder: (context) {
+                          final task = state.activeTask!;
+                          final now = DateTime.now();
+                          final remaining = task.getRemainingMinutesFor(now);
+                          final dailyMins = remaining > 0
+                              ? remaining
+                              : task.estimatedMinutes;
+                          final isPomodoroSelected =
+                              state.totalSeconds ==
+                              task.pomodoroWorkMinutes * 60;
+
+                          return Container(
+                            padding: EdgeInsets.all(4.r),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: AppColors.border,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Pomodoro Session Option
+                                Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      context.read<FocusBloc>().add(
+                                        SwitchPomodoroModeEvent(
+                                          mode: PomodoroMode.work,
+                                          customDurationMinutes:
+                                              task.pomodoroWorkMinutes,
+                                        ),
+                                      );
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isPomodoroSelected
+                                            ? AppColors.accentCyan.withAlpha(45)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                        border: Border.all(
+                                          color: isPomodoroSelected
+                                              ? AppColors.accentCyan
+                                              : Colors.transparent,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.timer_outlined,
+                                              size: 15.r,
+                                              color: isPomodoroSelected
+                                                  ? AppColors.accentCyan
+                                                  : AppColors.textSecondary,
+                                            ),
+                                            SizedBox(width: 5.w),
+                                            Text(
+                                              'Pomodoro (${task.pomodoroWorkMinutes}m)',
+                                              style: AppTypography.captionBold
+                                                  .copyWith(
+                                                    color: isPomodoroSelected
+                                                        ? AppColors.accentCyan
+                                                        : AppColors
+                                                              .textSecondary,
+                                                    fontSize: 11.sp,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 4.w),
+                                // Total Daily Time Option
+                                Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      context.read<FocusBloc>().add(
+                                        SwitchPomodoroModeEvent(
+                                          mode: PomodoroMode.work,
+                                          customDurationMinutes: dailyMins,
+                                        ),
+                                      );
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: !isPomodoroSelected
+                                            ? AppColors.primary.withAlpha(60)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                        border: Border.all(
+                                          color: !isPomodoroSelected
+                                              ? AppColors.primary
+                                              : Colors.transparent,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.hourglass_top_rounded,
+                                              size: 15.r,
+                                              color: !isPomodoroSelected
+                                                  ? Colors.white
+                                                  : AppColors.textSecondary,
+                                            ),
+                                            SizedBox(width: 5.w),
+                                            Text(
+                                              'Total Daily (${dailyMins}m)',
+                                              style: AppTypography.captionBold
+                                                  .copyWith(
+                                                    color: !isPomodoroSelected
+                                                        ? Colors.white
+                                                        : AppColors
+                                                              .textSecondary,
+                                                    fontSize: 11.sp,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+
+                    SizedBox(height: 24.h),
 
                     // Central Glowing Countdown Progress Gauge
                     Stack(
@@ -1115,8 +1619,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                               value: state.progress,
                               strokeWidth: 9.r,
                               backgroundColor: AppColors.surfaceElevated,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(modeColor),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                modeColor,
+                              ),
                               strokeCap: StrokeCap.round,
                             ),
                           ),
@@ -1136,17 +1641,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             SizedBox(height: 4.h),
                             Container(
                               padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w, vertical: 3.h),
+                                horizontal: 10.w,
+                                vertical: 3.h,
+                              ),
                               decoration: AppDecorations.badge(
                                 color: modeColor,
                                 borderRadius: 12.r,
                               ),
                               child: Text(
-                                state.isRunning
-                                    ? 'RUNNING'
+                                state.isCompleted
+                                    ? 'COMPLETED'
+                                    : state.isRunning
+                                    ? context.l10n.timerRunning
                                     : state.isPaused
-                                        ? 'PAUSED'
-                                        : 'READY',
+                                    ? context.l10n.timerPaused
+                                    : context.l10n.timerReady,
                                 style: AppTypography.badge.copyWith(
                                   color: modeColor,
                                   fontWeight: FontWeight.w800,
@@ -1160,39 +1669,72 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
 
                     SizedBox(height: 24.h),
 
-                    // Cycle Indicator Row (Cycle 1 of 4)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Cycle ${(state.completedCycles % 4) + 1} of 4',
-                          style: AppTypography.titleSmall.copyWith(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Row(
-                          children: List.generate(4, (index) {
-                            final currentCycleMod = state.completedCycles % 4;
-                            final isFilled = index < currentCycleMod;
-                            final isCurrent =
-                                index == currentCycleMod && isRunning;
+                    // Cycle Indicator Row (Task-aware)
+                    Builder(
+                      builder: (context) {
+                        final int cycleMinutes =
+                            (task != null && task.pomodoroWorkMinutes > 0)
+                                ? task.pomodoroWorkMinutes
+                                : 25;
+                        final int totalTargetCycles =
+                            (task != null && task.estimatedMinutes > 0)
+                                ? math.max(
+                                    1,
+                                    (task.estimatedMinutes / cycleMinutes)
+                                        .ceil())
+                                : 4;
 
-                            return Container(
-                              margin: EdgeInsets.symmetric(horizontal: 4.w),
-                              width: isCurrent ? 20.w : 8.w,
-                              height: 8.h,
-                              decoration: BoxDecoration(
-                                color: isFilled || isCurrent
-                                    ? modeColor
-                                    : AppColors.surfaceElevated,
-                                borderRadius: BorderRadius.circular(4.r),
+                        final bool allCyclesCompleted =
+                            state.completedCycles >= totalTargetCycles;
+                        final int currentCycleNumber = allCyclesCompleted
+                            ? totalTargetCycles
+                            : (state.completedCycles % totalTargetCycles) + 1;
+
+                        final int displayBarCount =
+                            totalTargetCycles.clamp(1, 8);
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              allCyclesCompleted
+                                  ? 'All $totalTargetCycles ${context.l10n.cycle}s Completed! 🎉'
+                                  : '${context.l10n.cycle} $currentCycleNumber ${context.l10n.ofPreposition} $totalTargetCycles',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
                               ),
-                            );
-                          }),
-                        ),
-                      ],
+                            ),
+                            SizedBox(width: 12.w),
+                            Row(
+                              children: List.generate(displayBarCount, (index) {
+                                final isFilled =
+                                    index < state.completedCycles;
+                                final isCurrent = !allCyclesCompleted &&
+                                    index ==
+                                        (state.completedCycles %
+                                            displayBarCount) &&
+                                    isRunning;
+
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                  width: isCurrent ? 20.w : 8.w,
+                                  height: 8.h,
+                                  decoration: BoxDecoration(
+                                    color: isFilled
+                                        ? AppColors.success
+                                        : (isCurrent
+                                            ? modeColor
+                                            : AppColors.surfaceElevated),
+                                    borderRadius: BorderRadius.circular(4.r),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     SizedBox(height: 24.h),
@@ -1202,21 +1744,22 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: _quickPresets.map((mins) {
-                          final isSelected =
-                              state.totalSeconds == mins * 60;
+                          final isSelected = state.totalSeconds == mins * 60;
                           return GestureDetector(
                             onTap: () {
                               context.read<FocusBloc>().add(
-                                    SwitchPomodoroModeEvent(
-                                      mode: state.mode,
-                                      customDurationMinutes: mins,
-                                    ),
-                                  );
+                                SwitchPomodoroModeEvent(
+                                  mode: state.mode,
+                                  customDurationMinutes: mins,
+                                ),
+                              );
                             },
                             child: Container(
                               margin: EdgeInsets.symmetric(horizontal: 4.w),
                               padding: EdgeInsets.symmetric(
-                                  horizontal: 14.w, vertical: 7.h),
+                                horizontal: 14.w,
+                                vertical: 7.h,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? modeColor.withAlpha(40)
@@ -1259,12 +1802,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             border: Border.all(color: AppColors.border),
                           ),
                           child: IconButton(
-                            icon: Icon(Icons.replay_rounded,
-                                size: 22.r, color: AppColors.textSecondary),
+                            icon: Icon(
+                              Icons.replay_rounded,
+                              size: 22.r,
+                              color: AppColors.textSecondary,
+                            ),
                             onPressed: () {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(const ResetFocusSessionEvent());
+                              context.read<FocusBloc>().add(
+                                const ResetFocusSessionEvent(),
+                              );
                             },
                           ),
                         ),
@@ -1274,17 +1820,17 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
                             if (state.isRunning) {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(const PauseFocusSessionEvent());
+                              context.read<FocusBloc>().add(
+                                const PauseFocusSessionEvent(),
+                              );
                             } else if (state.isPaused) {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(const ResumeFocusSessionEvent());
+                              context.read<FocusBloc>().add(
+                                const ResumeFocusSessionEvent(),
+                              );
                             } else {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(const StartFocusSessionEvent());
+                              context.read<FocusBloc>().add(
+                                const StartFocusSessionEvent(),
+                              );
                             }
                           },
                           child: Container(
@@ -1292,10 +1838,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             height: 52.h,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [
-                                  modeColor,
-                                  modeColor.withAlpha(190),
-                                ],
+                                colors: [modeColor, modeColor.withAlpha(190)],
                               ),
                               borderRadius: BorderRadius.circular(26.r),
                               boxShadow: [
@@ -1306,30 +1849,42 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                                 ),
                               ],
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  state.isRunning
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  size: 24.r,
-                                  color: AppColors.background,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 14.w),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      state.isRunning
+                                          ? Icons.pause_rounded
+                                          : (state.isCompleted
+                                                ? Icons.fast_forward_rounded
+                                                : Icons.play_arrow_rounded),
+                                      size: 24.r,
+                                      color: AppColors.background,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      state.isRunning
+                                          ? context.l10n.pause.toUpperCase()
+                                          : state.isPaused
+                                          ? context.l10n.resume.toUpperCase()
+                                          : state.isCompleted
+                                          ? (isTaskDone
+                                              ? 'CONTINUE'
+                                              : 'START NEXT CYCLE')
+                                          : context.l10n.start.toUpperCase(),
+                                      style: AppTypography.buttonLarge.copyWith(
+                                        color: AppColors.background,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(width: 8.w),
-                                Text(
-                                  state.isRunning
-                                      ? 'PAUSE'
-                                      : state.isPaused
-                                          ? 'RESUME'
-                                          : 'START',
-                                  style: AppTypography.buttonLarge.copyWith(
-                                    color: AppColors.background,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -1342,12 +1897,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                             border: Border.all(color: AppColors.border),
                           ),
                           child: IconButton(
-                            icon: Icon(Icons.skip_next_rounded,
-                                size: 24.r, color: AppColors.textSecondary),
+                            icon: Icon(
+                              Icons.skip_next_rounded,
+                              size: 24.r,
+                              color: AppColors.textSecondary,
+                            ),
                             onPressed: () {
-                              context
-                                  .read<FocusBloc>()
-                                  .add(const SkipPhaseEvent());
+                              context.read<FocusBloc>().add(
+                                const SkipPhaseEvent(),
+                              );
                             },
                           ),
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -17,6 +18,8 @@ class DataManagementSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return GlassmorphicCard(
       padding: EdgeInsets.all(16.r),
       borderRadius: 20.r,
@@ -42,9 +45,11 @@ class DataManagementSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Data & Preferences', style: AppTypography.heading3),
+                    Text(l10n.dataManagement, style: AppTypography.heading3),
                     Text(
-                      'Manage local storage and reset configurations',
+                      l10n.clearAllDataConfirm,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.caption,
                     ),
                   ],
@@ -75,10 +80,10 @@ class DataManagementSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Reset Settings to Defaults',
+                        Text(l10n.resetSettingsDefaults,
                             style: AppTypography.titleSmall),
                         Text(
-                          'Restore default timers, fonts and targets',
+                          l10n.restoreDefaultsSubtitle,
                           style: AppTypography.caption,
                         ),
                       ],
@@ -114,14 +119,14 @@ class DataManagementSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Clear All Tasks & Sessions',
+                          l10n.clearAllTasksAndSessions,
                           style: AppTypography.titleSmall.copyWith(
                             color: AppColors.error,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
-                          'Permanently wipe local tasks, categories & focus history',
+                          l10n.wipeLocalTasksSubtitle,
                           style: AppTypography.caption.copyWith(
                             color: AppColors.error.withAlpha(180),
                           ),

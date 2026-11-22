@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../features/settings/domain/repositories/settings_repository.dart';
 import '../app_colors.dart';
-import '../app_typography.dart';
 import 'theme_event.dart';
 import 'theme_state.dart';
 
@@ -12,7 +11,6 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
       : super(const ThemeState()) {
     on<InitThemeEvent>(_onInitTheme);
     on<SetThemeModeEvent>(_onSetThemeMode);
-    on<SetFontFamilyEvent>(_onSetFontFamily);
   }
 
   Future<void> _onInitTheme(
@@ -23,11 +21,7 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
       final prefs = await settingsRepository.getPreferences();
       final isDark = prefs.themeMode.id != 'light';
       AppColors.isDarkMode = isDark;
-      AppTypography.currentFontFamily = prefs.fontFamily;
-
       emit(state.copyWith(
-        themeMode: prefs.themeMode,
-        fontFamily: prefs.fontFamily,
         isDarkMode: isDark,
       ));
     } catch (_) {}
@@ -53,21 +47,4 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
     } catch (_) {}
   }
 
-  Future<void> _onSetFontFamily(
-    SetFontFamilyEvent event,
-    Emitter<ThemeState> emit,
-  ) async {
-    AppTypography.currentFontFamily = event.fontFamily;
-
-    emit(state.copyWith(
-      fontFamily: event.fontFamily,
-    ));
-
-    try {
-      final currentPrefs = await settingsRepository.getPreferences();
-      await settingsRepository.savePreferences(
-        currentPrefs.copyWith(fontFamily: event.fontFamily),
-      );
-    } catch (_) {}
-  }
 }

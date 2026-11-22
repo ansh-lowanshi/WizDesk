@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
@@ -48,7 +49,7 @@ class _TaskSearchBarState extends State<TaskSearchBar> {
         style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           filled: false,
-          hintText: 'Search tasks by title or tag...',
+          hintText: context.l10n.searchTasks,
           hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textMuted),
           prefixIcon: Icon(
             Icons.search_rounded,

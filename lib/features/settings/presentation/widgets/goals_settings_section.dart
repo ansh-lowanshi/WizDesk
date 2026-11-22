@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -18,6 +19,7 @@ class GoalsSettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final focusHours = (preferences.dailyFocusMinutesGoal / 60).toStringAsFixed(1);
 
     return GlassmorphicCard(
@@ -45,9 +47,9 @@ class GoalsSettingsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Productivity Targets', style: AppTypography.heading3),
+                    Text(l10n.goalsTargetsTitle, style: AppTypography.heading3),
                     Text(
-                      'Set daily milestones to stay focused',
+                      l10n.goalsTargetsSubtitle,
                       style: AppTypography.caption,
                     ),
                   ],
@@ -66,9 +68,9 @@ class GoalsSettingsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Daily Tasks Target', style: AppTypography.titleSmall),
+                    Text(l10n.dailyTaskGoal, style: AppTypography.titleSmall),
                     Text(
-                      'Completed tasks milestone per day',
+                      l10n.completedTasksMilestonePerDay,
                       style: AppTypography.caption,
                     ),
                   ],
@@ -86,7 +88,7 @@ class GoalsSettingsSection extends StatelessWidget {
                   ),
                   SizedBox(width: 10.w),
                   Text(
-                    '${preferences.dailyTaskGoal} tasks',
+                    '${preferences.dailyTaskGoal} ${l10n.tasksWord.toLowerCase()}',
                     style: AppTypography.titleMedium.copyWith(
                       color: AppColors.success,
                       fontWeight: FontWeight.w700,
@@ -115,9 +117,9 @@ class GoalsSettingsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Daily Focus Target', style: AppTypography.titleSmall),
+                    Text(l10n.dailyFocusGoal, style: AppTypography.titleSmall),
                     Text(
-                      'Target deep work hours per day',
+                      l10n.targetDeepWorkHoursPerDay,
                       style: AppTypography.caption,
                     ),
                   ],

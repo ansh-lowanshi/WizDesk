@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -28,12 +29,12 @@ class ProductivityScoreBanner extends StatelessWidget {
             : AppColors.accentPurple;
 
     final String scoreTitle = score >= 85
-        ? 'Peak Productivity'
+        ? context.l10n.peakProductivity
         : score >= 70
-            ? 'Strong Momentum'
+            ? context.l10n.strongMomentum
             : score >= 50
-                ? 'Steady Progress'
-                : 'Getting Started';
+                ? context.l10n.steadyProgress
+                : context.l10n.gettingStarted;
 
     return GlowContainer(
       glowColor: scoreColor,
@@ -107,7 +108,7 @@ class ProductivityScoreBanner extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    '${summary.totalTasksCompleted} tasks done • ${summary.formattedTotalFocusTime} focus',
+                    '${summary.totalTasksCompleted} ${context.l10n.tasksDone.toLowerCase()} • ${summary.formattedTotalFocusTime} ${context.l10n.focusTime.toLowerCase()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.caption.copyWith(
@@ -133,7 +134,7 @@ class ProductivityScoreBanner extends StatelessWidget {
                             const Text('🔥'),
                             SizedBox(width: 4.w),
                             Text(
-                              '$streak Day${streak == 1 ? '' : 's'} Streak',
+                              '$streak ${context.l10n.streakDays}',
                               style: AppTypography.badge.copyWith(
                                 color: AppColors.warning,
                                 fontWeight: FontWeight.w700,

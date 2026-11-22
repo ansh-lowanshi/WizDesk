@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/widgets/glow_container.dart';
 import '../bloc/focus_bloc.dart';
 import '../bloc/focus_event.dart';
@@ -258,11 +260,13 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                               ),
                               SizedBox(height: 6.h),
                               Text(
-                                state.isRunning
-                                    ? 'FOCUS IN PROGRESS'
-                                    : state.isPaused
-                                        ? 'SESSION PAUSED'
-                                        : 'READY TO FOCUS',
+                                state.isCompleted
+                                    ? 'COMPLETED'
+                                    : state.isRunning
+                                        ? context.l10n.focusInProgress
+                                        : state.isPaused
+                                            ? context.l10n.sessionPaused
+                                            : context.l10n.readyToFocus,
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.textMuted,
                                   letterSpacing: 1.5,
@@ -276,35 +280,62 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
 
                       SizedBox(height: 32.h),
 
-                      // Cycle Indicator Dots (4-cycle sets)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
-                          final currentCycleMod = state.completedCycles % 4;
-                          final isFilled = index < currentCycleMod;
-                          final isCurrent = index == currentCycleMod && isRunning;
+                      // Cycle Indicator Dots (Task-aware)
+                      Builder(
+                        builder: (context) {
+                          final task = state.activeTask;
+                          final int cycleMinutes =
+                              (task != null && task.pomodoroWorkMinutes > 0)
+                                  ? task.pomodoroWorkMinutes
+                                  : 25;
+                          final int totalTargetCycles =
+                              (task != null && task.estimatedMinutes > 0)
+                                  ? math.max(
+                                      1,
+                                      (task.estimatedMinutes / cycleMinutes)
+                                          .ceil())
+                                  : 4;
 
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            margin: EdgeInsets.symmetric(horizontal: 5.w),
-                            width: isCurrent ? 24.w : 10.w,
-                            height: 10.h,
-                            decoration: BoxDecoration(
-                              color: isFilled || isCurrent
-                                  ? modeColor
-                                  : AppColors.surfaceElevated,
-                              borderRadius: BorderRadius.circular(5.r),
-                              boxShadow: isCurrent
-                                  ? [
-                                      BoxShadow(
-                                        color: modeColor.withAlpha(150),
-                                        blurRadius: 10,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
+                          final bool allCyclesCompleted =
+                              state.completedCycles >= totalTargetCycles;
+                          final int displayBarCount =
+                              totalTargetCycles.clamp(1, 8);
+
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(displayBarCount, (index) {
+                              final isFilled = index < state.completedCycles;
+                              final isCurrent = !allCyclesCompleted &&
+                                  index ==
+                                      (state.completedCycles %
+                                          displayBarCount) &&
+                                  isRunning;
+
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                margin: EdgeInsets.symmetric(horizontal: 5.w),
+                                width: isCurrent ? 24.w : 10.w,
+                                height: 10.h,
+                                decoration: BoxDecoration(
+                                  color: isFilled
+                                      ? AppColors.success
+                                      : (isCurrent
+                                          ? modeColor
+                                          : AppColors.surfaceElevated),
+                                  borderRadius: BorderRadius.circular(5.r),
+                                  boxShadow: isCurrent
+                                      ? [
+                                          BoxShadow(
+                                            color: modeColor.withAlpha(150),
+                                            blurRadius: 10,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              );
+                            }),
                           );
-                        }),
+                        },
                       ),
                     ],
                   ),
@@ -368,7 +399,9 @@ class _FullscreenTimerScreenState extends State<FullscreenTimerScreen>
                           child: Icon(
                             state.isRunning
                                 ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
+                                : (state.isCompleted
+                                    ? Icons.fast_forward_rounded
+                                    : Icons.play_arrow_rounded),
                             size: 36.r,
                             color: Colors.white,
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:wizdesk/core/constants/app_constants.dart';
 import 'package:wizdesk/core/theme/app_theme.dart';
 import 'package:wizdesk/features/tasks/domain/entities/task_category_entity.dart';
@@ -17,6 +18,10 @@ import 'package:wizdesk/features/tasks/presentation/screens/add_edit_task_screen
 import 'task_bloc_test.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('en', null);
+  });
+
   late MockTaskRepository repository;
   late TaskBloc taskBloc;
 
@@ -85,9 +90,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('New Task'), findsOneWidget);
+    expect(find.text('Add Task'), findsOneWidget);
     expect(find.text('Task Title'), findsOneWidget);
-    expect(find.text('Priority Level'), findsOneWidget);
+    expect(find.text('Priority'), findsOneWidget);
     expect(find.text('Pomodoro Focus Mode'), findsOneWidget);
 
     // Enter task title

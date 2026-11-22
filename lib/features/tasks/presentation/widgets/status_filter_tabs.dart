@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../bloc/task_event.dart';
@@ -26,6 +27,8 @@ class StatusFilterTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Container(
       height: 44.h,
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
@@ -36,13 +39,13 @@ class StatusFilterTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _buildTab(TaskStatusFilter.all, 'All', allCount),
+          _buildTab(TaskStatusFilter.all, l10n.filterAll, allCount),
           SizedBox(width: 4.w),
-          _buildTab(TaskStatusFilter.inProgress, 'In Progress', inProgressCount),
+          _buildTab(TaskStatusFilter.inProgress, l10n.inProgress, inProgressCount),
           SizedBox(width: 4.w),
-          _buildTab(TaskStatusFilter.pending, 'Pending', pendingCount),
+          _buildTab(TaskStatusFilter.pending, l10n.pending, pendingCount),
           SizedBox(width: 4.w),
-          _buildTab(TaskStatusFilter.completed, 'Done', completedCount),
+          _buildTab(TaskStatusFilter.completed, l10n.filterDone, completedCount),
         ],
       ),
     );

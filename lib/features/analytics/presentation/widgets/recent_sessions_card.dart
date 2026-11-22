@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -29,14 +30,14 @@ class RecentSessionsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Recent Focus Logs',
+                  context.l10n.recentFocusLogs,
                   style: AppTypography.heading3,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(width: 8.w),
-              Text('Latest ${sessions.length}', style: AppTypography.caption),
+              Text('${sessions.length}', style: AppTypography.caption),
             ],
           ),
           SizedBox(height: 14.h),
@@ -45,7 +46,7 @@ class RecentSessionsCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 16.h),
               child: Center(
                 child: Text(
-                  'No sessions recorded yet.',
+                  context.l10n.noSessionsRecorded,
                   style: AppTypography.caption,
                 ),
               ),

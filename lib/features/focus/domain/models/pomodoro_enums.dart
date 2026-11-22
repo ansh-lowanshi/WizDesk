@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Modes of the Pomodoro focus technique (25 min work + 5 min break)
@@ -6,6 +7,17 @@ enum PomodoroMode {
   work,
   shortBreak,
   longBreak;
+
+  String localizedLabel(BuildContext context) {
+    switch (this) {
+      case PomodoroMode.work:
+        return context.l10n.focusSession;
+      case PomodoroMode.shortBreak:
+        return context.l10n.shortBreak;
+      case PomodoroMode.longBreak:
+        return context.l10n.longBreak;
+    }
+  }
 
   String get label {
     switch (this) {

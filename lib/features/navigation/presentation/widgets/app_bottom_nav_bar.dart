@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glow_container.dart';
@@ -29,36 +30,40 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onTabSelected,
   });
 
-  static const List<NavItem> _items = [
-    NavItem(
-      icon: Icons.today_outlined,
-      activeIcon: Icons.today_rounded,
-      label: 'Today',
-    ),
-    NavItem(
-      icon: Icons.calendar_month_outlined,
-      activeIcon: Icons.calendar_month_rounded,
-      label: 'Calendar',
-    ),
-    NavItem(
-      icon: Icons.timer_outlined,
-      activeIcon: Icons.timer_rounded,
-      label: 'Focus',
-    ),
-    NavItem(
-      icon: Icons.insights_outlined,
-      activeIcon: Icons.insights_rounded,
-      label: 'Analytics',
-    ),
-    NavItem(
-      icon: Icons.tune_rounded,
-      activeIcon: Icons.tune_rounded,
-      label: 'Settings',
-    ),
-  ];
+  List<NavItem> _getItems(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      NavItem(
+        icon: Icons.today_outlined,
+        activeIcon: Icons.today_rounded,
+        label: l10n.navToday,
+      ),
+      NavItem(
+        icon: Icons.calendar_month_outlined,
+        activeIcon: Icons.calendar_month_rounded,
+        label: l10n.navCalendar,
+      ),
+      NavItem(
+        icon: Icons.timer_outlined,
+        activeIcon: Icons.timer_rounded,
+        label: l10n.navFocus,
+      ),
+      NavItem(
+        icon: Icons.insights_outlined,
+        activeIcon: Icons.insights_rounded,
+        label: l10n.navAnalytics,
+      ),
+      NavItem(
+        icon: Icons.tune_rounded,
+        activeIcon: Icons.tune_rounded,
+        label: l10n.navSettings,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final items = _getItems(context);
     final activeColor =
         AppColors.isDarkMode ? AppColors.accentCyan : AppColors.primary;
 
@@ -101,19 +106,19 @@ class AppBottomNavBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     // Tab 0: Today
-                    Expanded(child: _buildNavItem(0, activeColor)),
+                    Expanded(child: _buildNavItem(0, items[0], activeColor)),
 
                     // Tab 1: Calendar
-                    Expanded(child: _buildNavItem(1, activeColor)),
+                    Expanded(child: _buildNavItem(1, items[1], activeColor)),
 
                     // Tab 2: Focus (Elevated Center Glowing Button)
-                    _buildCenterFocusButton(),
+                    _buildCenterFocusButton(items[2].label),
 
                     // Tab 3: Analytics
-                    Expanded(child: _buildNavItem(3, activeColor)),
+                    Expanded(child: _buildNavItem(3, items[3], activeColor)),
 
                     // Tab 4: Settings
-                    Expanded(child: _buildNavItem(4, activeColor)),
+                    Expanded(child: _buildNavItem(4, items[4], activeColor)),
                   ],
                 ),
               ),
@@ -124,8 +129,7 @@ class AppBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, Color activeColor) {
-    final item = _items[index];
+  Widget _buildNavItem(int index, NavItem item, Color activeColor) {
     final isSelected = currentIndex == index;
     final activeTextColor =
         AppColors.isDarkMode ? Colors.white : AppColors.primary;
@@ -205,7 +209,7 @@ class AppBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildCenterFocusButton() {
+  Widget _buildCenterFocusButton(String label) {
     final isSelected = currentIndex == 2;
 
     return Padding(
@@ -255,7 +259,7 @@ class AppBottomNavBar extends StatelessWidget {
             ),
             SizedBox(height: 2.h),
             Text(
-              'Focus',
+              label,
               style: AppTypography.caption.copyWith(
                 fontSize: 10.sp,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,

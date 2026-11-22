@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/task_enums.dart';
 import '../models/focus_session_model.dart';
 import '../models/task_category_model.dart';
@@ -217,6 +218,9 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           frequency: TaskFrequency.daily,
           estimatedMinutes: 50,
           spentMinutes: 25,
+          dailySpentMinutes: {
+            TaskEntity.formatDateKey(now): 25,
+          },
           isFocusModeEnabled: true,
           createdAt: now.subtract(const Duration(hours: 3)),
         ),

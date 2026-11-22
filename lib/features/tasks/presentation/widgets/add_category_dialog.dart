@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/app_icon_helper.dart';
 import '../../domain/entities/task_category_entity.dart';
 
@@ -93,7 +94,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('New Category', style: AppTypography.heading3),
+                  Text(context.l10n.newCategory, style: AppTypography.heading3),
                   IconButton(
                     icon: Icon(Icons.close_rounded,
                         size: 20.r, color: AppColors.textSecondary),
@@ -109,7 +110,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 style: AppTypography.bodyLarge
                     .copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Category Name',
+                  labelText: context.l10n.category,
                   hintText: 'e.g. Finance, Reading, Project X',
                 ),
               ),
@@ -205,7 +206,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
-                      child: Text('Cancel',
+                      child: Text(context.l10n.cancel,
                           style: AppTypography.buttonMedium
                               .copyWith(color: AppColors.textSecondary)),
                     ),
@@ -224,7 +225,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
-                        child: Text('Create', style: AppTypography.buttonMedium),
+                        child: Text(context.l10n.save, style: AppTypography.buttonMedium),
                       ),
                     ),
                   ),

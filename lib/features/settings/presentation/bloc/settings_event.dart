@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/models/app_font_family.dart';
 import '../../domain/models/app_theme_mode.dart';
 
 abstract class SettingsEvent extends Equatable {
@@ -39,15 +38,6 @@ class UpdateTimerSettingsEvent extends SettingsEvent {
         autoStartBreaks,
         autoStartPomodoros,
       ];
-}
-
-class UpdateFontFamilyEvent extends SettingsEvent {
-  final AppFontFamily fontFamily;
-
-  const UpdateFontFamilyEvent(this.fontFamily);
-
-  @override
-  List<Object?> get props => [fontFamily];
 }
 
 class UpdateThemeModeEvent extends SettingsEvent {
@@ -100,4 +90,13 @@ class ResetSettingsEvent extends SettingsEvent {
 
 class ClearAllDataConfirmedEvent extends SettingsEvent {
   const ClearAllDataConfirmedEvent();
+}
+
+class UpdateLanguageEvent extends SettingsEvent {
+  final String languageCode;
+
+  const UpdateLanguageEvent(this.languageCode);
+
+  @override
+  List<Object?> get props => [languageCode];
 }

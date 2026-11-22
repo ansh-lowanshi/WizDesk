@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wizdesk/core/theme/bloc/theme_bloc.dart';
 import 'package:wizdesk/core/theme/bloc/theme_event.dart';
 import 'package:wizdesk/core/theme/bloc/theme_state.dart';
-import 'package:wizdesk/features/settings/domain/models/app_font_family.dart';
 import 'package:wizdesk/features/settings/domain/models/app_theme_mode.dart';
 import 'package:wizdesk/features/settings/domain/models/user_preferences_model.dart';
 import 'package:wizdesk/features/settings/domain/repositories/settings_repository.dart';
@@ -36,7 +35,6 @@ void main() {
   test('initial state has default theme configuration', () {
     expect(themeBloc.state.themeMode, AppThemeMode.dark);
     expect(themeBloc.state.isDarkMode, true);
-    expect(themeBloc.state.fontFamily, AppFontFamily.plusJakartaSans);
   });
 
   test('SetThemeModeEvent switches to light theme and updates isDarkMode', () async {
@@ -45,16 +43,6 @@ void main() {
       themeBloc.stream,
       emits(predicate<ThemeState>((state) {
         return state.themeMode == AppThemeMode.light && state.isDarkMode == false;
-      })),
-    );
-  });
-
-  test('SetFontFamilyEvent switches active font family', () async {
-    themeBloc.add(const SetFontFamilyEvent(AppFontFamily.outfit));
-    await expectLater(
-      themeBloc.stream,
-      emits(predicate<ThemeState>((state) {
-        return state.fontFamily == AppFontFamily.outfit;
       })),
     );
   });

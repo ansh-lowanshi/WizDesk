@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_time_formatter.dart';
+import '../../../../core/widgets/glassmorphic_card.dart';
+import '../../../../core/widgets/glow_container.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/task_enums.dart';
@@ -11,6 +15,9 @@ import '../bloc/task_bloc.dart';
 import '../bloc/task_event.dart';
 import '../bloc/task_state.dart';
 import '../../../../features/analytics/presentation/screens/analytics_screen.dart';
+import '../../../../features/focus/presentation/bloc/focus_bloc.dart';
+import '../../../../features/focus/presentation/bloc/focus_event.dart';
+import '../../../../features/focus/presentation/bloc/focus_state.dart';
 import '../../../../features/focus/presentation/screens/focus_timer_screen.dart';
 import '../../../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../../../features/settings/presentation/bloc/settings_state.dart';
@@ -21,16 +28,19 @@ import '../widgets/task_card.dart';
 import '../widgets/task_empty_state.dart';
 import '../widgets/task_search_bar.dart';
 import 'add_edit_task_screen.dart';
+import '../../../notes/presentation/screens/note_editor_screen.dart';
 
 /// Main Home Dashboard Screen for Wiz Desk
 class HomeDashboardScreen extends StatefulWidget {
   final VoidCallback? onNavigateToAddTask;
   final ValueChanged<TaskEntity>? onStartTaskFocus;
+  final VoidCallback? onNavigateToFocusTab;
 
   const HomeDashboardScreen({
     super.key,
     this.onNavigateToAddTask,
     this.onStartTaskFocus,
+    this.onNavigateToFocusTab,
   });
 
   @override
@@ -63,10 +73,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   void _openEditTaskScreen(TaskEntity task) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AddEditTaskScreen(
-          taskToEdit: task,
-          initialDate: DateTime.now(),
-        ),
+        builder: (_) =>
+            AddEditTaskScreen(taskToEdit: task, initialDate: DateTime.now()),
       ),
     );
   }
@@ -85,6 +93,174 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+  }
+
+  Widget _buildActiveFocusTimerBanner(BuildContext context) {
+    FocusBloc? focusBloc;
+    try {
+      focusBloc = context.read<FocusBloc>();
+    } catch (_) {
+      focusBloc = null;
+    }
+    if (focusBloc == null) return const SizedBox.shrink();
+
+    return BlocBuilder<FocusBloc, FocusState>(
+      bloc: focusBloc,
+      builder: (context, focusState) {
+        if (!focusState.isRunning && !focusState.isPaused) {
+          return const SizedBox.shrink();
+        }
+
+        final isRunning = focusState.isRunning;
+        final modeColor = focusState.mode.color;
+        final activeTask = focusState.activeTask;
+
+        final now = DateTime.now();
+        final currentPct = activeTask?.getProgressPercentFor(now) ?? 0;
+        final currentSpent = activeTask?.getSpentMinutesFor(now) ?? 0;
+        final currentRatio = activeTask?.getProgressPercentageFor(now) ?? 0;
+        final displayPct = currentPct > 0
+            ? currentPct
+            : (currentRatio * 100).round();
+
+        return Container(
+          margin: EdgeInsets.only(top: 14.h),
+          child: GlassmorphicCard(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            borderColor: modeColor.withAlpha(120),
+            backgroundColor: AppColors.surfaceElevated.withAlpha(220),
+            onTap: () {
+              if (widget.onNavigateToFocusTab != null) {
+                widget.onNavigateToFocusTab!();
+              } else if (activeTask != null &&
+                  widget.onStartTaskFocus != null) {
+                widget.onStartTaskFocus!(activeTask);
+              } else {
+                _openFocusTimerScreen(activeTask);
+              }
+            },
+            child: Row(
+              children: [
+                GlowContainer(
+                  isCircle: true,
+                  glowColor: isRunning ? modeColor : Colors.transparent,
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                  child: Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: modeColor.withAlpha(35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isRunning
+                          ? Icons.timer_rounded
+                          : Icons.pause_circle_filled_rounded,
+                      size: 20.r,
+                      color: modeColor,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: AppDecorations.badge(
+                              color: modeColor,
+                              borderRadius: 6.r,
+                            ),
+                            child: Text(
+                              isRunning
+                                  ? context.l10n.timerRunning
+                                  : context.l10n.timerPaused,
+                              style: AppTypography.badge.copyWith(
+                                color: modeColor,
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          Text(
+                            focusState.mode.localizedLabel(context),
+                            style: AppTypography.captionBold.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 10.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 3.h),
+                      Text(
+                        activeTask?.title ?? context.l10n.freeFocusSession,
+                        style: AppTypography.titleSmall.copyWith(
+                          color: AppColors.textPrimary,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (activeTask != null) ...[
+                        SizedBox(height: 2.h),
+                        Text(
+                          '$displayPct% ${context.l10n.completed} • ${currentSpent}m / ${activeTask.estimatedMinutes}m',
+                          style: AppTypography.caption.copyWith(
+                            color: modeColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10.sp,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  focusState.formattedTime,
+                  style: AppTypography.timerDisplay(
+                    fontSize: 20,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    isRunning
+                        ? Icons.pause_circle_filled_rounded
+                        : Icons.play_circle_filled_rounded,
+                    size: 26.r,
+                    color: modeColor,
+                  ),
+                  tooltip: isRunning ? context.l10n.pause : context.l10n.resume,
+                  onPressed: () {
+                    if (isRunning) {
+                      context.read<FocusBloc>().add(
+                        const PauseFocusSessionEvent(),
+                      );
+                    } else {
+                      context.read<FocusBloc>().add(
+                        const ResumeFocusSessionEvent(),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -144,14 +320,26 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                     children: [
                                       BlocBuilder<SettingsBloc, SettingsState>(
                                         builder: (context, settingsState) {
+                                          final l10n = context.l10n;
                                           final name =
                                               settingsState is SettingsLoaded
                                               ? settingsState
                                                     .preferences
                                                     .userName
                                               : 'Creator';
+                                          final hour = now.hour;
+                                          final String greeting;
+                                          if (hour >= 5 && hour < 12) {
+                                            greeting = l10n.greetingMorning;
+                                          } else if (hour >= 12 && hour < 17) {
+                                            greeting = l10n.greetingAfternoon;
+                                          } else if (hour >= 17 && hour < 21) {
+                                            greeting = l10n.greetingEvening;
+                                          } else {
+                                            greeting = l10n.greetingNight;
+                                          }
                                           return Text(
-                                            'Good Day, $name 👋',
+                                            '$greeting, $name 👋',
                                             style: AppTypography.heading2,
                                             overflow: TextOverflow.ellipsis,
                                           );
@@ -207,6 +395,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                         }
                                       },
                                     ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.note_add_outlined,
+                                        color: AppColors.accentCyan,
+                                        size: 22.r,
+                                      ),
+                                      tooltip: 'New Note',
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const NoteEditorScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                     SizedBox(width: 4.w),
                                     IconButton(
                                       key: const ValueKey(
@@ -260,21 +464,24 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             DailyProgressBanner(
                               completedTasks:
                                   state.dateFilter == TaskDateFilter.today
-                                      ? state.todayCompletedTasksCount
-                                      : state.completedTasksCount,
+                                  ? state.todayCompletedTasksCount
+                                  : state.completedTasksCount,
                               totalTasks:
                                   state.dateFilter == TaskDateFilter.today
-                                      ? state.todayTasksCount
-                                      : state.totalTasksCount,
+                                  ? state.todayTasksCount
+                                  : state.totalTasksCount,
                               totalFocusMinutes:
                                   state.dateFilter == TaskDateFilter.today
-                                      ? state.todayFocusMinutes
-                                      : state.allTasks.fold<int>(
-                                          0,
-                                          (sum, t) => sum + t.spentMinutes,
-                                        ),
+                                  ? state.todayFocusMinutes
+                                  : state.allTasks.fold<int>(
+                                      0,
+                                      (sum, t) => sum + t.spentMinutes,
+                                    ),
                               onBannerTap: _openAnalyticsScreen,
                             ),
+
+                            // Active Focus Timer Banner (shown when a timer is running or paused)
+                            _buildActiveFocusTimerBanner(context),
 
                             SizedBox(height: 20.h),
 
@@ -283,8 +490,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               builder: (context) {
                                 final scopedTasks =
                                     state.dateFilter == TaskDateFilter.today
-                                        ? state.todayTasks
-                                        : state.allTasks;
+                                    ? state.todayTasks
+                                    : state.allTasks;
                                 return CategoryFilterCarousel(
                                   categories: state.categories,
                                   selectedCategoryId: state.categoryFilterId,
@@ -308,43 +515,48 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               builder: (context) {
                                 final scopedTasks =
                                     state.dateFilter == TaskDateFilter.today
-                                        ? state.todayTasks
-                                        : state.allTasks;
+                                    ? state.todayTasks
+                                    : state.allTasks;
                                 final categoryScopedTasks =
                                     state.categoryFilterId == null
-                                        ? scopedTasks
-                                        : scopedTasks
-                                            .where((t) =>
+                                    ? scopedTasks
+                                    : scopedTasks
+                                          .where(
+                                            (t) =>
                                                 t.categoryId ==
-                                                state.categoryFilterId)
-                                            .toList();
+                                                state.categoryFilterId,
+                                          )
+                                          .toList();
 
-                                final int inProgressCount =
-                                    categoryScopedTasks.where((t) {
-                                  final isDone =
-                                      state.dateFilter == TaskDateFilter.today
+                                final int inProgressCount = categoryScopedTasks
+                                    .where((t) {
+                                      final isDone =
+                                          state.dateFilter ==
+                                              TaskDateFilter.today
                                           ? t.isCompletedOn(now)
                                           : t.status == TaskStatus.completed;
-                                  return !isDone &&
-                                      t.status == TaskStatus.inProgress;
-                                }).length;
+                                      return !isDone &&
+                                          t.status == TaskStatus.inProgress;
+                                    })
+                                    .length;
 
-                                final int pendingCount =
-                                    categoryScopedTasks.where((t) {
+                                final int
+                                pendingCount = categoryScopedTasks.where((t) {
                                   final isDone =
                                       state.dateFilter == TaskDateFilter.today
-                                          ? t.isCompletedOn(now)
-                                          : t.status == TaskStatus.completed;
-                                  return !isDone &&
-                                      t.status == TaskStatus.todo;
-                                }).length;
-
-                                final int completedCount =
-                                    categoryScopedTasks.where((t) {
-                                  return state.dateFilter == TaskDateFilter.today
                                       ? t.isCompletedOn(now)
                                       : t.status == TaskStatus.completed;
+                                  return !isDone && t.status == TaskStatus.todo;
                                 }).length;
+
+                                final int completedCount = categoryScopedTasks
+                                    .where((t) {
+                                      return state.dateFilter ==
+                                              TaskDateFilter.today
+                                          ? t.isCompletedOn(now)
+                                          : t.status == TaskStatus.completed;
+                                    })
+                                    .length;
 
                                 return StatusFilterTabs(
                                   activeFilter: state.statusFilter,
@@ -373,9 +585,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          state.dateFilter == TaskDateFilter.today
-                                              ? "Today's Tasks"
-                                              : 'All Tasks',
+                                          state.dateFilter ==
+                                                  TaskDateFilter.today
+                                              ? context.l10n.todayTasks
+                                              : context.l10n.allTasks,
                                           style: AppTypography.heading3,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -387,10 +600,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                           vertical: 2.h,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.accentCyan.withAlpha(25),
-                                          borderRadius: BorderRadius.circular(10.r),
+                                          color: AppColors.accentCyan.withAlpha(
+                                            25,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            10.r,
+                                          ),
                                           border: Border.all(
-                                            color: AppColors.accentCyan.withAlpha(60),
+                                            color: AppColors.accentCyan
+                                                .withAlpha(60),
                                             width: 0.8,
                                           ),
                                         ),
@@ -410,11 +628,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                   onTap: () {
                                     final nextDateFilter =
                                         state.dateFilter == TaskDateFilter.today
-                                            ? TaskDateFilter.all
-                                            : TaskDateFilter.today;
+                                        ? TaskDateFilter.all
+                                        : TaskDateFilter.today;
                                     context.read<TaskBloc>().add(
-                                          FilterByDateEvent(nextDateFilter),
-                                        );
+                                      FilterByDateEvent(nextDateFilter),
+                                    );
                                   },
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
@@ -423,12 +641,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                       vertical: 5.h,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: state.dateFilter == TaskDateFilter.all
+                                      color:
+                                          state.dateFilter == TaskDateFilter.all
                                           ? AppColors.primary.withAlpha(30)
                                           : AppColors.surfaceElevated,
                                       borderRadius: BorderRadius.circular(20.r),
                                       border: Border.all(
-                                        color: state.dateFilter == TaskDateFilter.all
+                                        color:
+                                            state.dateFilter ==
+                                                TaskDateFilter.all
                                             ? AppColors.primary
                                             : AppColors.border,
                                         width: 1,
@@ -442,17 +663,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                               ? Icons.check_circle_rounded
                                               : Icons.tune_rounded,
                                           size: 13.r,
-                                          color: state.dateFilter == TaskDateFilter.all
+                                          color:
+                                              state.dateFilter ==
+                                                  TaskDateFilter.all
                                               ? AppColors.primary
                                               : AppColors.textSecondary,
                                         ),
                                         SizedBox(width: 4.w),
                                         Text(
-                                          state.dateFilter == TaskDateFilter.today
-                                              ? 'See All Tasks'
-                                              : 'Show Today Only',
+                                          state.dateFilter ==
+                                                  TaskDateFilter.today
+                                              ? context.l10n.allTasks
+                                              : context.l10n.todayTasks,
                                           style: AppTypography.caption.copyWith(
-                                            color: state.dateFilter == TaskDateFilter.all
+                                            color:
+                                                state.dateFilter ==
+                                                    TaskDateFilter.all
                                                 ? AppColors.primary
                                                 : AppColors.textSecondary,
                                             fontWeight: FontWeight.w600,
@@ -475,19 +701,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         SliverFillRemaining(
                           hasScrollBody: false,
                           child: TaskEmptyState(
-                            title: state.searchQuery.isNotEmpty
-                                ? 'No matching tasks'
-                                : state.statusFilter ==
-                                      TaskStatusFilter.completed
-                                ? 'No completed tasks yet'
-                                : state.dateFilter == TaskDateFilter.today
-                                    ? 'No tasks scheduled for today'
-                                    : 'No tasks in this category',
-                            subtitle: state.searchQuery.isNotEmpty
-                                ? 'Try searching for another keyword or clear filters.'
-                                : state.dateFilter == TaskDateFilter.today
-                                    ? 'You are all clear today! Tap below to add a task, or tap "See All Tasks" above.'
-                                    : 'Tap the button below to add your first task!',
+                            title: context.l10n.noTasksTitle,
+                            subtitle: context.l10n.noTasksSubtitle,
+                            actionLabel: '+ ${context.l10n.addTask}',
                             onActionTap: _openAddTaskScreen,
                           ),
                         )
@@ -514,7 +730,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                   context.read<TaskBloc>().add(
                                     ToggleTaskStatusEvent(
                                       task.id,
-                                      date: state.dateFilter == TaskDateFilter.today
+                                      date:
+                                          state.dateFilter ==
+                                              TaskDateFilter.today
                                           ? now
                                           : null,
                                     ),

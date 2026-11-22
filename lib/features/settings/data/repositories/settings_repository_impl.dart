@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../../notes/data/datasources/note_local_datasource.dart';
 import '../../../tasks/data/datasources/task_local_datasource.dart';
 import '../../domain/models/user_preferences_model.dart';
 import '../../domain/repositories/settings_repository.dart';
@@ -6,12 +7,14 @@ import '../../domain/repositories/settings_repository.dart';
 class SettingsRepositoryImpl implements SettingsRepository {
   final Box? preferencesBox;
   final TaskLocalDataSource? taskLocalDataSource;
+  final NoteLocalDataSource? noteLocalDataSource;
 
   static const String _preferencesKey = 'user_app_preferences';
 
   SettingsRepositoryImpl({
     this.preferencesBox,
     this.taskLocalDataSource,
+    this.noteLocalDataSource,
   });
 
   @override
@@ -46,6 +49,11 @@ class SettingsRepositoryImpl implements SettingsRepository {
       await taskLocalDataSource!.clearAllData();
       await taskLocalDataSource!.seedInitialDataIfEmpty();
     }
+    if (noteLocalDataSource != null) {
+      await noteLocalDataSource!.clearAllData();
+      await noteLocalDataSource!.seedInitialDataIfEmpty();
+    }
     await resetToDefaults();
   }
 }
+

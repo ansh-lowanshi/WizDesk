@@ -1,4 +1,3 @@
-import 'app_font_family.dart';
 import 'app_theme_mode.dart';
 
 /// User Preferences and Global Settings Configuration Model
@@ -16,7 +15,6 @@ class UserPreferencesModel {
   final bool autoStartPomodoros;
 
   // Appearance
-  final AppFontFamily fontFamily;
   final AppThemeMode themeMode;
 
   // Day Reset & Scheduling (e.g. 2 for 2:00 AM late-night rollover)
@@ -25,6 +23,9 @@ class UserPreferencesModel {
   // Daily Productivity Goals
   final int dailyTaskGoal;
   final int dailyFocusMinutesGoal;
+
+  // Language & Localization
+  final String languageCode;
 
   const UserPreferencesModel({
     this.userName = 'Creator',
@@ -35,11 +36,11 @@ class UserPreferencesModel {
     this.longBreakInterval = 4,
     this.autoStartBreaks = false,
     this.autoStartPomodoros = false,
-    this.fontFamily = AppFontFamily.plusJakartaSans,
     this.themeMode = AppThemeMode.dark,
     this.dayResetHour = 0,
     this.dailyTaskGoal = 5,
     this.dailyFocusMinutesGoal = 120,
+    this.languageCode = 'en',
   });
 
   UserPreferencesModel copyWith({
@@ -51,11 +52,11 @@ class UserPreferencesModel {
     int? longBreakInterval,
     bool? autoStartBreaks,
     bool? autoStartPomodoros,
-    AppFontFamily? fontFamily,
     AppThemeMode? themeMode,
     int? dayResetHour,
     int? dailyTaskGoal,
     int? dailyFocusMinutesGoal,
+    String? languageCode,
   }) {
     return UserPreferencesModel(
       userName: userName ?? this.userName,
@@ -66,12 +67,12 @@ class UserPreferencesModel {
       longBreakInterval: longBreakInterval ?? this.longBreakInterval,
       autoStartBreaks: autoStartBreaks ?? this.autoStartBreaks,
       autoStartPomodoros: autoStartPomodoros ?? this.autoStartPomodoros,
-      fontFamily: fontFamily ?? this.fontFamily,
       themeMode: themeMode ?? this.themeMode,
       dayResetHour: dayResetHour ?? this.dayResetHour,
       dailyTaskGoal: dailyTaskGoal ?? this.dailyTaskGoal,
       dailyFocusMinutesGoal:
           dailyFocusMinutesGoal ?? this.dailyFocusMinutesGoal,
+      languageCode: languageCode ?? this.languageCode,
     );
   }
 
@@ -85,11 +86,11 @@ class UserPreferencesModel {
       'longBreakInterval': longBreakInterval,
       'autoStartBreaks': autoStartBreaks,
       'autoStartPomodoros': autoStartPomodoros,
-      'fontFamily': fontFamily.id,
       'themeMode': themeMode.id,
       'dayResetHour': dayResetHour,
       'dailyTaskGoal': dailyTaskGoal,
       'dailyFocusMinutesGoal': dailyFocusMinutesGoal,
+      'languageCode': languageCode,
     };
   }
 
@@ -104,11 +105,11 @@ class UserPreferencesModel {
       longBreakInterval: (map['longBreakInterval'] as int?) ?? 4,
       autoStartBreaks: (map['autoStartBreaks'] as bool?) ?? false,
       autoStartPomodoros: (map['autoStartPomodoros'] as bool?) ?? false,
-      fontFamily: AppFontFamily.fromId(map['fontFamily'] as String?),
       themeMode: AppThemeMode.fromId(map['themeMode'] as String?),
       dayResetHour: (map['dayResetHour'] as int?) ?? 0,
       dailyTaskGoal: (map['dailyTaskGoal'] as int?) ?? 5,
       dailyFocusMinutesGoal: (map['dailyFocusMinutesGoal'] as int?) ?? 120,
+      languageCode: (map['languageCode'] as String?) ?? 'en',
     );
   }
 }

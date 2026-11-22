@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
+import '../localization/bloc/locale_bloc.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../../features/analytics/presentation/bloc/analytics_bloc.dart';
 import '../../features/focus/domain/services/timer_ticker.dart';
@@ -27,6 +28,15 @@ import '../../features/tasks/domain/usecases/get_tasks_usecase.dart';
 import '../../features/tasks/domain/usecases/log_focus_session_usecase.dart';
 import '../../features/tasks/domain/usecases/update_task_usecase.dart';
 import '../../features/tasks/presentation/bloc/task_bloc.dart';
+import '../../features/notes/data/datasources/note_local_datasource.dart';
+import '../../features/notes/data/repositories/note_repository_impl.dart';
+import '../../features/notes/domain/repositories/note_repository.dart';
+import '../../features/notes/domain/usecases/add_note_usecase.dart';
+import '../../features/notes/domain/usecases/delete_note_usecase.dart';
+import '../../features/notes/domain/usecases/get_notes_for_task_usecase.dart';
+import '../../features/notes/domain/usecases/get_notes_usecase.dart';
+import '../../features/notes/domain/usecases/update_note_usecase.dart';
+import '../../features/notes/presentation/bloc/note_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -41,6 +51,7 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     final categoryBox = await Hive.openBox(AppConstants.categoryBoxName);
     final sessionBox = await Hive.openBox(AppConstants.sessionBoxName);
     final preferencesBox = await Hive.openBox(AppConstants.userPreferencesBoxName);
+    final noteBox = await Hive.openBox(AppConstants.noteBoxName);
 
     if (!sl.isRegistered<Box>(instanceName: AppConstants.taskBoxName)) {
       sl.registerLazySingleton<Box>(() => taskBox, instanceName: AppConstants.taskBoxName);
@@ -53,6 +64,9 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     }
     if (!sl.isRegistered<Box>(instanceName: AppConstants.userPreferencesBoxName)) {
       sl.registerLazySingleton<Box>(() => preferencesBox, instanceName: AppConstants.userPreferencesBoxName);
+    }
+    if (!sl.isRegistered<Box>(instanceName: AppConstants.noteBoxName)) {
+      sl.registerLazySingleton<Box>(() => noteBox, instanceName: AppConstants.noteBoxName);
     }
   }
 
@@ -72,11 +86,23 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
     await taskLocalDataSource.seedInitialDataIfEmpty();
     sl.registerLazySingleton<TaskLocalDataSource>(() => taskLocalDataSource);
   }
+  if (!sl.isRegistered<NoteLocalDataSource>() && !isTesting) {
+    final noteLocalDataSource = NoteLocalDataSourceImpl(
+      notesBox: sl<Box>(instanceName: AppConstants.noteBoxName),
+    );
+    await noteLocalDataSource.seedInitialDataIfEmpty();
+    sl.registerLazySingleton<NoteLocalDataSource>(() => noteLocalDataSource);
+  }
 
   // 3. Repositories
   if (!sl.isRegistered<TaskRepository>()) {
     sl.registerLazySingleton<TaskRepository>(
       () => TaskRepositoryImpl(localDataSource: sl<TaskLocalDataSource>()),
+    );
+  }
+  if (!sl.isRegistered<NoteRepository>()) {
+    sl.registerLazySingleton<NoteRepository>(
+      () => NoteRepositoryImpl(localDataSource: sl<NoteLocalDataSource>()),
     );
   }
   if (!sl.isRegistered<SettingsRepository>()) {
@@ -87,6 +113,7 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
                 ? sl<Box>(instanceName: AppConstants.userPreferencesBoxName)
                 : null,
         taskLocalDataSource: sl<TaskLocalDataSource>(),
+        noteLocalDataSource: sl<NoteLocalDataSource>(),
       ),
     );
   }
@@ -130,6 +157,21 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
   }
   if (!sl.isRegistered<ClearAllDataUseCase>()) {
     sl.registerLazySingleton(() => ClearAllDataUseCase(sl<SettingsRepository>()));
+  }
+  if (!sl.isRegistered<GetNotesUseCase>()) {
+    sl.registerLazySingleton(() => GetNotesUseCase(sl<NoteRepository>()));
+  }
+  if (!sl.isRegistered<AddNoteUseCase>()) {
+    sl.registerLazySingleton(() => AddNoteUseCase(sl<NoteRepository>()));
+  }
+  if (!sl.isRegistered<UpdateNoteUseCase>()) {
+    sl.registerLazySingleton(() => UpdateNoteUseCase(sl<NoteRepository>()));
+  }
+  if (!sl.isRegistered<DeleteNoteUseCase>()) {
+    sl.registerLazySingleton(() => DeleteNoteUseCase(sl<NoteRepository>()));
+  }
+  if (!sl.isRegistered<GetNotesForTaskUseCase>()) {
+    sl.registerLazySingleton(() => GetNotesForTaskUseCase(sl<NoteRepository>()));
   }
 
   // 5. Presentation Layer (BLoCs & Services)
@@ -185,6 +227,23 @@ Future<void> initServiceLocator({bool isTesting = false}) async {
   if (!sl.isRegistered<ThemeBloc>()) {
     sl.registerFactory(
       () => ThemeBloc(settingsRepository: sl<SettingsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<LocaleBloc>()) {
+    sl.registerFactory(
+      () => LocaleBloc(settingsRepository: sl<SettingsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<NoteBloc>()) {
+    sl.registerFactory(
+      () => NoteBloc(
+        getNotesUseCase: sl<GetNotesUseCase>(),
+        addNoteUseCase: sl<AddNoteUseCase>(),
+        updateNoteUseCase: sl<UpdateNoteUseCase>(),
+        deleteNoteUseCase: sl<DeleteNoteUseCase>(),
+      ),
     );
   }
 }

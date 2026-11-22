@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
@@ -29,9 +30,9 @@ class ProductivityMetricCards extends StatelessWidget {
               width: cardWidth,
               icon: Icons.timer_outlined,
               iconColor: AppColors.accentCyan,
-              label: 'Total Focus',
+              label: context.l10n.totalFocus,
               value: summary.formattedTotalFocusTime,
-              subtitle: '${summary.totalFocusSessions} sessions',
+              subtitle: '${summary.totalFocusSessions} ${context.l10n.sessionsCompleted.toLowerCase()}',
             ),
 
             // 2. Tasks Completed
@@ -39,9 +40,9 @@ class ProductivityMetricCards extends StatelessWidget {
               width: cardWidth,
               icon: Icons.check_circle_outline_rounded,
               iconColor: AppColors.success,
-              label: 'Completed',
+              label: context.l10n.completed,
               value: '${summary.totalTasksCompleted}',
-              subtitle: 'of ${summary.totalTasksCreated} tasks',
+              subtitle: 'of ${summary.totalTasksCreated} ${context.l10n.tasksWord.toLowerCase()}',
             ),
 
             // 3. Completion Rate
@@ -49,12 +50,12 @@ class ProductivityMetricCards extends StatelessWidget {
               width: cardWidth,
               icon: Icons.pie_chart_outline_rounded,
               iconColor: AppColors.primary,
-              label: 'Completion Rate',
+              label: context.l10n.completionRate,
               value:
                   '${summary.completionRatePercentage.toStringAsFixed(0)}%',
               subtitle: summary.completionRatePercentage >= 80
-                  ? 'High efficiency'
-                  : 'Target > 80%',
+                  ? context.l10n.highEfficiency
+                  : context.l10n.targetEfficiency,
             ),
 
             // 4. Focus Cycles
@@ -62,9 +63,9 @@ class ProductivityMetricCards extends StatelessWidget {
               width: cardWidth,
               icon: Icons.bolt_rounded,
               iconColor: AppColors.warning,
-              label: 'Focus Cycles',
+              label: context.l10n.round,
               value: '${summary.totalFocusSessions}',
-              subtitle: '${summary.currentStreakDays} day streak',
+              subtitle: '${summary.currentStreakDays} ${context.l10n.streakDays.toLowerCase()}',
             ),
           ],
         );

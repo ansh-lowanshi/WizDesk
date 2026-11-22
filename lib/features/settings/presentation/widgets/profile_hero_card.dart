@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/widgets/glassmorphic_card.dart';
 import '../../../../core/widgets/glow_container.dart';
 import '../../domain/models/user_preferences_model.dart';
@@ -130,7 +131,7 @@ class ProfileHeroCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'TASKS COMPLETED',
+                          context.l10n.tasksCompletedUpper,
                           style: AppTypography.caption.copyWith(
                             fontSize: 9.5.sp,
                             color: AppColors.textMuted,
@@ -163,7 +164,7 @@ class ProfileHeroCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'TOTAL FOCUS',
+                          context.l10n.totalFocusUpper,
                           style: AppTypography.caption.copyWith(
                             fontSize: 9.5.sp,
                             color: AppColors.textMuted,
